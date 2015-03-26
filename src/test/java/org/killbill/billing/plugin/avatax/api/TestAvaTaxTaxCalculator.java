@@ -19,6 +19,7 @@ package org.killbill.billing.plugin.avatax.api;
 
 import java.math.BigDecimal;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -30,8 +31,10 @@ import org.killbill.billing.invoice.api.InvoiceItem;
 import org.killbill.billing.invoice.api.InvoiceItemType;
 import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.TestUtils;
+import org.killbill.billing.plugin.api.invoice.PluginTaxCalculator;
 import org.killbill.billing.plugin.avatax.AvaTaxRemoteTestBase;
 import org.killbill.billing.plugin.avatax.dao.AvaTaxDao;
+import org.killbill.clock.Clock;
 import org.killbill.clock.DefaultClock;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
@@ -42,25 +45,38 @@ import com.google.common.collect.ImmutableMap;
 
 public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
 
-    private final Iterable<PluginProperty> pluginProperties = ImmutableList.<PluginProperty>of();
+    private final Clock clock = new DefaultClock();
+    private final Collection<PluginProperty> pluginProperties = new LinkedList<PluginProperty>();
     private final UUID tenantId = UUID.randomUUID();
 
     private Account account;
     private Invoice newInvoice;
     private AvaTaxDao dao;
-    private AvaTaxTaxCalculator calculator;
 
     @BeforeMethod(groups = "slow")
     public void setUp() throws Exception {
+        pluginProperties.add(new PluginProperty(TaxRatesTaxCalculator.RATE_TYPE, "County", false));
+        pluginProperties.add(new PluginProperty(TaxRatesTaxCalculator.RATE_TYPE, "State", false));
+
         account = TestUtils.buildAccount(Currency.USD, "45 Fremont Street", null, "San Francisco", "CA", "94105", "US");
         newInvoice = TestUtils.buildInvoice(account);
         dao = new AvaTaxDao(embeddedDB.getDataSource());
-        calculator = new AvaTaxTaxCalculator(companyCode, client, dao, new DefaultClock());
+    }
+
+    @Test(groups = "slow")
+    public void testWithAvaTaxTaxCalculator() throws Exception {
+        final PluginTaxCalculator calculator = new AvaTaxTaxCalculator(companyCode, client, dao, clock);
+        testComputeItemsOverTime(calculator);
+    }
+
+    @Test(groups = "slow")
+    public void testWithTaxRatesTaxCalculator() throws Exception {
+        final PluginTaxCalculator calculator = new TaxRatesTaxCalculator(taxRatesClient, dao, clock);
+        testComputeItemsOverTime(calculator);
     }
 
     // The test is quite long due to the state that needs to be created in AvaTax
-    @Test(groups = "slow")
-    public void testComputeItemsOverTime() throws Exception {
+    private void testComputeItemsOverTime(final PluginTaxCalculator calculator) throws Exception {
         final Invoice invoice = TestUtils.buildInvoice(account);
         final InvoiceItem taxableItem1 = TestUtils.buildInvoiceItem(invoice, InvoiceItemType.EXTERNAL_CHARGE, new BigDecimal("100"), null);
         final InvoiceItem taxableItem2 = TestUtils.buildInvoiceItem(invoice, InvoiceItemType.RECURRING, BigDecimal.TEN, null);
@@ -90,7 +106,7 @@ public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
         Assert.assertEquals(dao.getSuccessfulResponses(invoice.getId(), tenantId).size(), 2);
 
         // Check the created item
-        checkCreatedItems(ImmutableMap.<UUID, InvoiceItemType>of(taxableItem1.getId(), InvoiceItemType.ITEM_ADJ), adjustments1);
+        checkCreatedItems(ImmutableMap.<UUID, InvoiceItemType>of(taxableItem1.getId(), InvoiceItemType.TAX), adjustments1);
 
         // Verify idempotency
         Assert.assertEquals(calculator.compute(account, newInvoice, invoice, taxableItems1, subsequentAdjustmentItems1, pluginProperties, tenantId).size(), 0);
@@ -110,8 +126,8 @@ public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
         Assert.assertEquals(dao.getSuccessfulResponses(invoice.getId(), tenantId).size(), 4);
 
         // Check the created items
-        checkCreatedItems(ImmutableMap.<UUID, InvoiceItemType>of(taxableItem1.getId(), InvoiceItemType.ITEM_ADJ,
-                                                                 taxableItem2.getId(), InvoiceItemType.ITEM_ADJ,
+        checkCreatedItems(ImmutableMap.<UUID, InvoiceItemType>of(taxableItem1.getId(), InvoiceItemType.TAX,
+                                                                 taxableItem2.getId(), InvoiceItemType.TAX,
                                                                  taxableItem3.getId(), InvoiceItemType.TAX), adjustments2);
 
         // Verify idempotency
@@ -125,7 +141,6 @@ public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
         for (final InvoiceItem invoiceItem : createdItems) {
             Assert.assertEquals(invoiceItem.getInvoiceId(), newInvoice.getId());
             Assert.assertEquals(invoiceItem.getInvoiceItemType(), expectedInvoiceItemTypes.get(invoiceItem.getLinkedItemId()));
-            Assert.assertTrue(InvoiceItemType.TAX.equals(invoiceItem.getInvoiceItemType()) ? invoiceItem.getAmount().compareTo(BigDecimal.ZERO) > 0 : invoiceItem.getAmount().compareTo(BigDecimal.ZERO) < 0);
         }
     }
 }

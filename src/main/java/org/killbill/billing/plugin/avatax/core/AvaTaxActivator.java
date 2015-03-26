@@ -22,7 +22,9 @@ import java.util.Hashtable;
 import org.killbill.billing.invoice.plugin.api.InvoicePluginApi;
 import org.killbill.billing.osgi.api.OSGIPluginProperties;
 import org.killbill.billing.plugin.avatax.api.AvaTaxInvoicePluginApi;
+import org.killbill.billing.plugin.avatax.api.TaxRatesInvoicePluginApi;
 import org.killbill.billing.plugin.avatax.client.AvaTaxClient;
+import org.killbill.billing.plugin.avatax.client.TaxRatesClient;
 import org.killbill.billing.plugin.avatax.dao.AvaTaxDao;
 import org.killbill.clock.Clock;
 import org.killbill.clock.DefaultClock;
@@ -37,31 +39,60 @@ public class AvaTaxActivator extends KillbillActivatorBase {
     public static final String PLUGIN_NAME = "killbill-avatax";
 
     public static final String PROPERTY_PREFIX = "org.killbill.billing.plugin.avatax.";
+    public static final String TAX_RATES_API_PROPERTY_PREFIX = "org.killbill.billing.plugin.avatax.taxratesapi.";
 
     @Override
     public void start(final BundleContext context) throws Exception {
         super.start(context);
 
-        final String proxyPortString = configProperties.getString(PROPERTY_PREFIX + "proxyPort");
-        final String strictSSLString = configProperties.getString(PROPERTY_PREFIX + "strictSSL");
-        final AvaTaxClient avataxClient = new AvaTaxClient(configProperties.getString(PROPERTY_PREFIX + "url"),
-                                                           configProperties.getString(PROPERTY_PREFIX + "accountNumber"),
-                                                           configProperties.getString(PROPERTY_PREFIX + "licenseKey"),
-                                                           configProperties.getString(PROPERTY_PREFIX + "proxyHost"),
-                                                           Strings.isNullOrEmpty(proxyPortString) ? null : Integer.valueOf(proxyPortString),
-                                                           Strings.isNullOrEmpty(strictSSLString) ? true : Boolean.valueOf(strictSSLString));
-
         final AvaTaxDao dao = new AvaTaxDao(dataSource.getDataSource());
         final Clock clock = new DefaultClock();
 
-        // Register the InvoicePluginApi
-        final InvoicePluginApi invoicePluginApi = new AvaTaxInvoicePluginApi(avataxClient,
-                                                                             dao,
-                                                                             configProperties.getString(PROPERTY_PREFIX + "companyCode"),
-                                                                             killbillAPI,
-                                                                             configProperties,
-                                                                             logService,
-                                                                             clock);
+        final String proxyPortString = configProperties.getString(PROPERTY_PREFIX + "proxyPort");
+        final String strictSSLString = configProperties.getString(PROPERTY_PREFIX + "strictSSL");
+        final String proxyHost = configProperties.getString(PROPERTY_PREFIX + "proxyHost");
+        final Integer proxyPort = Strings.isNullOrEmpty(proxyPortString) ? null : Integer.valueOf(proxyPortString);
+        final boolean strictSSL = Strings.isNullOrEmpty(strictSSLString) ? true : Boolean.valueOf(strictSSLString);
+
+        // Avalara AvaTax API
+        final String avaTaxUrl = configProperties.getString(PROPERTY_PREFIX + "url");
+        final String avaTaxAccountNumber = configProperties.getString(PROPERTY_PREFIX + "accountNumber");
+        final String avaTaxLicenseKey = configProperties.getString(PROPERTY_PREFIX + "licenseKey");
+
+        // Avalara Tax Rates API
+        final String taxRatesApiUrl = configProperties.getString(TAX_RATES_API_PROPERTY_PREFIX + "url");
+        final String taxRatesApiApiKey = configProperties.getString(TAX_RATES_API_PROPERTY_PREFIX + "apiKey");
+
+        final InvoicePluginApi invoicePluginApi;
+        if (avaTaxUrl != null && avaTaxAccountNumber != null && avaTaxLicenseKey != null) {
+            final AvaTaxClient avataxClient = new AvaTaxClient(avaTaxUrl,
+                                                               avaTaxAccountNumber,
+                                                               avaTaxLicenseKey,
+                                                               proxyHost,
+                                                               proxyPort,
+                                                               strictSSL);
+            invoicePluginApi = new AvaTaxInvoicePluginApi(avataxClient,
+                                                          dao,
+                                                          configProperties.getString(PROPERTY_PREFIX + "companyCode"),
+                                                          killbillAPI,
+                                                          configProperties,
+                                                          logService,
+                                                          clock);
+        } else if (taxRatesApiUrl != null && taxRatesApiApiKey != null) {
+            final TaxRatesClient taxRatesClient = new TaxRatesClient(taxRatesApiUrl,
+                                                                     taxRatesApiApiKey,
+                                                                     proxyHost,
+                                                                     proxyPort,
+                                                                     strictSSL);
+            invoicePluginApi = new TaxRatesInvoicePluginApi(taxRatesClient,
+                                                            dao,
+                                                            killbillAPI,
+                                                            configProperties,
+                                                            logService,
+                                                            clock);
+        } else {
+            throw new IllegalStateException("AvaTax plugin mis-configured!");
+        }
         registerInvoicePluginApi(context, invoicePluginApi);
     }
 

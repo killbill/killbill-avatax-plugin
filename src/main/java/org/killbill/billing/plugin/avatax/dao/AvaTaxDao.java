@@ -36,6 +36,7 @@ import org.jooq.impl.DSL;
 import org.killbill.billing.invoice.api.InvoiceItem;
 import org.killbill.billing.plugin.avatax.client.model.CommonResponse;
 import org.killbill.billing.plugin.avatax.client.model.GetTaxResult;
+import org.killbill.billing.plugin.avatax.client.model.TaxRateResult;
 import org.killbill.billing.plugin.avatax.dao.gen.tables.records.AvataxResponsesRecord;
 import org.killbill.billing.plugin.dao.PluginDao;
 import org.slf4j.Logger;
@@ -52,8 +53,42 @@ public class AvaTaxDao extends PluginDao {
 
     private static final Logger logger = LoggerFactory.getLogger(AvaTaxDao.class);
 
+    private static final String SUCCESS = CommonResponse.SeverityLevel.Success.name();
+
     public AvaTaxDao(final DataSource dataSource) throws SQLException {
         super(dataSource);
+    }
+
+    public void addResponse(final UUID kbAccountId,
+                            final UUID kbInvoiceId,
+                            final Map<UUID, Iterable<InvoiceItem>> kbInvoiceItems,
+                            final TaxRateResult taxRateResult,
+                            final DateTime utcNow,
+                            final UUID kbTenantId) throws SQLException {
+        execute(dataSource.getConnection(),
+                new WithConnectionCallback<Void>() {
+                    @Override
+                    public Void withConnection(final Connection conn) throws SQLException {
+                        DSL.using(conn, dialect, settings)
+                           .insertInto(AVATAX_RESPONSES,
+                                       AVATAX_RESPONSES.KB_ACCOUNT_ID,
+                                       AVATAX_RESPONSES.KB_INVOICE_ID,
+                                       AVATAX_RESPONSES.KB_INVOICE_ITEM_IDS,
+                                       AVATAX_RESPONSES.TOTAL_TAX,
+                                       AVATAX_RESPONSES.RESULT_CODE,
+                                       AVATAX_RESPONSES.CREATED_DATE,
+                                       AVATAX_RESPONSES.KB_TENANT_ID)
+                           .values(kbAccountId.toString(),
+                                   kbInvoiceId.toString(),
+                                   kbInvoiceItemsIdsAsString(kbInvoiceItems),
+                                   BigDecimal.valueOf(taxRateResult.totalRate),
+                                   SUCCESS,
+                                   toTimestamp(utcNow),
+                                   kbTenantId.toString())
+                           .execute();
+                        return null;
+                    }
+                });
     }
 
     public void addResponse(final UUID kbAccountId,
@@ -125,7 +160,7 @@ public class AvaTaxDao extends PluginDao {
                                return DSL.using(conn, dialect, settings)
                                          .selectFrom(AVATAX_RESPONSES)
                                          .where(AVATAX_RESPONSES.KB_INVOICE_ID.equal(invoiceId.toString()))
-                                         .and(AVATAX_RESPONSES.RESULT_CODE.equal(CommonResponse.SeverityLevel.Success.name()))
+                                         .and(AVATAX_RESPONSES.RESULT_CODE.equal(SUCCESS))
                                          .and(AVATAX_RESPONSES.KB_TENANT_ID.equal(kbTenantId.toString()))
                                          .orderBy(AVATAX_RESPONSES.RECORD_ID.asc())
                                          .fetch();

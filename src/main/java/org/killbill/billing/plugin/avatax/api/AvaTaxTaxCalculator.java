@@ -21,12 +21,9 @@ import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import javax.annotation.Nullable;
@@ -37,8 +34,6 @@ import org.killbill.billing.invoice.api.Invoice;
 import org.killbill.billing.invoice.api.InvoiceItem;
 import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.api.PluginProperties;
-import org.killbill.billing.plugin.api.invoice.PluginInvoiceItem;
-import org.killbill.billing.plugin.api.invoice.PluginTaxCalculator;
 import org.killbill.billing.plugin.avatax.client.AvaTaxClient;
 import org.killbill.billing.plugin.avatax.client.AvaTaxClientException;
 import org.killbill.billing.plugin.avatax.client.model.Address;
@@ -52,7 +47,6 @@ import org.killbill.billing.plugin.avatax.client.model.TaxDetail;
 import org.killbill.billing.plugin.avatax.client.model.TaxLine;
 import org.killbill.billing.plugin.avatax.client.model.TaxOverrideDef;
 import org.killbill.billing.plugin.avatax.dao.AvaTaxDao;
-import org.killbill.billing.plugin.avatax.dao.gen.tables.records.AvataxResponsesRecord;
 import org.killbill.clock.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,10 +55,9 @@ import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
-public class AvaTaxTaxCalculator extends PluginTaxCalculator {
+public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
 
     public static final String PROPERTY_COMPANY_CODE = "companyCode";
-    public static final String PROPERTY_DRY_RUN = "dryRun";
 
     private static final Logger logger = LoggerFactory.getLogger(AvaTaxTaxCalculator.class);
 
@@ -72,124 +65,61 @@ public class AvaTaxTaxCalculator extends PluginTaxCalculator {
 
     private final String companyCode;
     private final AvaTaxClient client;
-    private final AvaTaxDao dao;
-    private final Clock clock;
 
     public AvaTaxTaxCalculator(final String companyCode, final AvaTaxClient client, final AvaTaxDao dao, final Clock clock) {
+        super(dao, clock);
         this.companyCode = companyCode;
         this.client = client;
-        this.dao = dao;
-        this.clock = clock;
     }
 
     @Override
-    public List<InvoiceItem> compute(final Account account,
-                                     final Invoice newInvoice,
-                                     final Invoice invoice,
-                                     final Map<UUID, InvoiceItem> taxableItems,
-                                     final Map<UUID, Collection<InvoiceItem>> adjustmentItems,
-                                     final Iterable<PluginProperty> pluginProperties,
-                                     final UUID kbTenantId) {
-        // Retrieve what we've already sent to AvaTax
-        final Map<UUID, Set<UUID>> alreadyTaxedItemsWithAdjustments;
-        final String originalInvoiceReferenceCode;
-        try {
-            final List<AvataxResponsesRecord> responses = dao.getSuccessfulResponses(invoice.getId(), kbTenantId);
-            alreadyTaxedItemsWithAdjustments = dao.getTaxedItemsWithAdjustments(responses);
-            originalInvoiceReferenceCode = responses.isEmpty() ? null : responses.get(0).getDocCode();
-        } catch (final SQLException e) {
-            throw new RuntimeException(e);
-        }
-
-        // We can only send one type of document at a time (Sales or Return). In some cases, we need to send both, for example
-        // in the case of repairs (adjustment for the original item, tax for the new item -- all generated items would be on the new invoice)
-        final Map<UUID, InvoiceItem> salesTaxItems = new HashMap<UUID, InvoiceItem>();
-        final Map<UUID, InvoiceItem> returnTaxItems = new HashMap<UUID, InvoiceItem>();
-        final Map<UUID, Collection<InvoiceItem>> adjustmentItemsForReturnTaxItems = new HashMap<UUID, Collection<InvoiceItem>>();
-        computeNewItemsToTaxAndExistingItemsToAdjust(taxableItems, adjustmentItems, alreadyTaxedItemsWithAdjustments, salesTaxItems, returnTaxItems, adjustmentItemsForReturnTaxItems);
-
-        final ImmutableList.Builder<InvoiceItem> newInvoiceItemsBuilder = ImmutableList.<InvoiceItem>builder();
-        if (!salesTaxItems.isEmpty()) {
-            newInvoiceItemsBuilder.addAll(getTax(account, newInvoice, invoice, salesTaxItems, null, null, pluginProperties, kbTenantId));
-        }
-        if (!returnTaxItems.isEmpty()) {
-            newInvoiceItemsBuilder.addAll(getTax(account, newInvoice, invoice, returnTaxItems, adjustmentItemsForReturnTaxItems, originalInvoiceReferenceCode, pluginProperties, kbTenantId));
-        }
-        return newInvoiceItemsBuilder.build();
-    }
-
-    private Iterable<InvoiceItem> getTax(final Account account,
-                                         final Invoice newInvoice,
-                                         final Invoice invoice,
-                                         final Map<UUID, InvoiceItem> taxableItems,
-                                         @Nullable final Map<UUID, Collection<InvoiceItem>> adjustmentItems,
-                                         @Nullable final String originalInvoiceReferenceCode,
-                                         final Iterable<PluginProperty> pluginProperties,
-                                         final UUID kbTenantId) {
-        // Keep track of the invoice items and adjustments sent to AvaTax
-        final Map<UUID, Iterable<InvoiceItem>> kbInvoiceItems = new HashMap<UUID, Iterable<InvoiceItem>>();
-        if (adjustmentItems != null) {
-            kbInvoiceItems.putAll(adjustmentItems);
-        }
-        for (final InvoiceItem taxableItem : taxableItems.values()) {
-            if (kbInvoiceItems.get(taxableItem.getId()) == null) {
-                kbInvoiceItems.put(taxableItem.getId(), ImmutableList.<InvoiceItem>of());
-            }
-        }
-        final LocalDate utcToday = clock.getUTCToday();
-
+    protected Collection<InvoiceItem> buildInvoiceItems(final Account account,
+                                                        final Invoice newInvoice,
+                                                        final Invoice invoice,
+                                                        final Map<UUID, InvoiceItem> taxableItems,
+                                                        @Nullable final Map<UUID, Collection<InvoiceItem>> adjustmentItems,
+                                                        @Nullable final String originalInvoiceReferenceCode,
+                                                        final Iterable<PluginProperty> pluginProperties,
+                                                        final UUID kbTenantId,
+                                                        final Map<UUID, Iterable<InvoiceItem>> kbInvoiceItems,
+                                                        final LocalDate utcToday) throws AvaTaxClientException, SQLException {
         final GetTaxRequest taxRequest = toTaxRequest(account, invoice, taxableItems.values(), adjustmentItems, originalInvoiceReferenceCode, pluginProperties, utcToday);
         logger.info("GetTaxRequest: {}", taxRequest.simplifiedToString());
 
-        try {
-            final GetTaxResult taxResult = client.getTax(taxRequest);
-            dao.addResponse(account.getId(), invoice.getId(), kbInvoiceItems, taxResult, clock.getUTCNow(), kbTenantId);
+        final GetTaxResult taxResult = client.getTax(taxRequest);
+        dao.addResponse(account.getId(), invoice.getId(), kbInvoiceItems, taxResult, clock.getUTCNow(), kbTenantId);
 
-            // Align both log lines for readability
-            logger.info(" GetTaxResult: {}", taxResult.simplifiedToString());
+        // Align both log lines for readability
+        logger.info(" GetTaxResult: {}", taxResult.simplifiedToString());
 
-            if (!CommonResponse.SeverityLevel.Success.equals(taxResult.ResultCode)) {
-                logger.warn("Unsuccessful GetTax request: {}", Arrays.toString(taxResult.Messages));
-                return ImmutableList.<InvoiceItem>of();
-            } else if (taxResult.TaxLines == null || taxResult.TaxLines.length == 0) {
-                logger.info("Nothing to tax for taxable items: {}", kbInvoiceItems.keySet());
-                return ImmutableList.<InvoiceItem>of();
-            }
-
-            final Collection<InvoiceItem> invoiceItems = new LinkedList<InvoiceItem>();
-            for (final TaxLine taxLine : taxResult.TaxLines) {
-                // See convention in toLine() below
-                final UUID invoiceItemId = UUID.fromString(taxLine.LineNo);
-                invoiceItems.addAll(toInvoiceItems(newInvoice.getId(), taxableItems.get(invoiceItemId), taxLine, utcToday));
-            }
-
-            return invoiceItems;
-        } catch (final AvaTaxClientException e) {
-            throw new RuntimeException(e);
-        } catch (final SQLException e) {
-            throw new RuntimeException(e);
+        if (!CommonResponse.SeverityLevel.Success.equals(taxResult.ResultCode)) {
+            logger.warn("Unsuccessful GetTax request: {}", Arrays.toString(taxResult.Messages));
+            return ImmutableList.<InvoiceItem>of();
+        } else if (taxResult.TaxLines == null || taxResult.TaxLines.length == 0) {
+            logger.info("Nothing to tax for taxable items: {}", kbInvoiceItems.keySet());
+            return ImmutableList.<InvoiceItem>of();
         }
+
+        final Collection<InvoiceItem> invoiceItems = new LinkedList<InvoiceItem>();
+        for (final TaxLine taxLine : taxResult.TaxLines) {
+            // See convention in toLine() below
+            final UUID invoiceItemId = UUID.fromString(taxLine.LineNo);
+            invoiceItems.addAll(toInvoiceItems(newInvoice.getId(), taxableItems.get(invoiceItemId), taxLine, utcToday));
+        }
+
+        return invoiceItems;
     }
 
     private Collection<InvoiceItem> toInvoiceItems(final UUID invoiceId, final InvoiceItem taxableItem, final TaxLine taxLine, final LocalDate utcToday) {
         if (taxLine.TaxDetails == null || taxLine.TaxDetails.length == 0) {
-            return ImmutableList.<InvoiceItem>of(toInvoiceItem(invoiceId, taxableItem, BigDecimal.valueOf(taxLine.Tax), "Tax", utcToday));
+            return ImmutableList.<InvoiceItem>of(buildTaxItem(taxableItem, invoiceId, utcToday, BigDecimal.valueOf(taxLine.Tax), "Tax"));
         } else {
             final Collection<InvoiceItem> invoiceItems = new LinkedList<InvoiceItem>();
             for (final TaxDetail taxDetail : taxLine.TaxDetails) {
                 final String description = Objects.firstNonNull(taxDetail.TaxName, Objects.firstNonNull(taxDetail.JurisName, "Tax"));
-                invoiceItems.add(toInvoiceItem(invoiceId, taxableItem, BigDecimal.valueOf(taxDetail.Tax), description, utcToday));
+                invoiceItems.add(buildTaxItem(taxableItem, invoiceId, utcToday, BigDecimal.valueOf(taxDetail.Tax), description));
             }
             return invoiceItems;
-        }
-    }
-
-    private InvoiceItem toInvoiceItem(final UUID invoiceId, final InvoiceItem taxableItem, final BigDecimal taxAmount, final String description, final LocalDate utcToday) {
-        if (taxAmount.compareTo(BigDecimal.ZERO) >= 0) {
-            return PluginInvoiceItem.createTaxItem(taxableItem, invoiceId, utcToday, null, taxAmount, description);
-        } else {
-            // The tax engine will return negative tax amounts on the line items based on the TaxDate specified.
-            return PluginInvoiceItem.createAdjustmentItem(taxableItem, invoiceId, utcToday, null, taxAmount, description);
         }
     }
 

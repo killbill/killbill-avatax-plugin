@@ -17,13 +17,13 @@
 
 package org.killbill.billing.plugin.avatax;
 
-import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Properties;
 
 import org.killbill.billing.plugin.TestUtils;
 import org.killbill.billing.plugin.TestWithEmbeddedDBBase;
 import org.killbill.billing.plugin.avatax.client.AvaTaxClient;
+import org.killbill.billing.plugin.avatax.client.TaxRatesClient;
 import org.killbill.billing.plugin.avatax.core.AvaTaxActivator;
 import org.testng.annotations.BeforeMethod;
 
@@ -36,23 +36,37 @@ public abstract class AvaTaxRemoteTestBase extends TestWithEmbeddedDBBase {
     private static final String AVATAX_PROPERTIES = "avatax.properties";
 
     protected AvaTaxClient client;
+    protected TaxRatesClient taxRatesClient;
     protected String companyCode;
 
     @BeforeMethod(groups = "slow")
     public void beforeMethod() throws Exception {
-        buildAvataxClient();
-    }
-
-    private void buildAvataxClient() throws IOException, GeneralSecurityException {
         final Properties properties = TestUtils.loadProperties(AVATAX_PROPERTIES);
         final String proxyPortString = properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "proxyPort");
         final String strictSSLString = properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "strictSSL");
+        final String proxyHost = properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "proxyHost");
+        final Integer proxyPort = Strings.isNullOrEmpty(proxyPortString) ? null : Integer.valueOf(proxyPortString);
+        final boolean strictSSL = Strings.isNullOrEmpty(strictSSLString) ? true : Boolean.valueOf(strictSSLString);
+
+        buildAvataxClient(proxyHost, proxyPort, strictSSL, properties);
+        buildTaxRatesClient(proxyHost, proxyPort, strictSSL, properties);
+    }
+
+    private void buildAvataxClient(final String proxyHost, final Integer proxyPort, final boolean strictSSL, final Properties properties) throws GeneralSecurityException {
         client = new AvaTaxClient(properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "url"),
                                   properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "accountNumber"),
                                   properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "licenseKey"),
-                                  properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "proxyHost"),
-                                  Strings.isNullOrEmpty(proxyPortString) ? null : Integer.valueOf(proxyPortString),
-                                  Strings.isNullOrEmpty(strictSSLString) ? true : Boolean.valueOf(strictSSLString));
+                                  proxyHost,
+                                  proxyPort,
+                                  strictSSL);
         companyCode = properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "companyCode");
+    }
+
+    private void buildTaxRatesClient(final String proxyHost, final Integer proxyPort, final boolean strictSSL, final Properties properties) throws GeneralSecurityException {
+        taxRatesClient = new TaxRatesClient(properties.getProperty(AvaTaxActivator.TAX_RATES_API_PROPERTY_PREFIX + "url"),
+                                            properties.getProperty(AvaTaxActivator.TAX_RATES_API_PROPERTY_PREFIX + "apiKey"),
+                                            proxyHost,
+                                            proxyPort,
+                                            strictSSL);
     }
 }

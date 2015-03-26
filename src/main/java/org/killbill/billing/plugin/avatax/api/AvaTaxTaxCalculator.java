@@ -77,7 +77,7 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
                                                         final Invoice newInvoice,
                                                         final Invoice invoice,
                                                         final Map<UUID, InvoiceItem> taxableItems,
-                                                        @Nullable final Map<UUID, Collection<InvoiceItem>> adjustmentItems,
+                                                        final Map<UUID, Collection<InvoiceItem>> adjustmentItems,
                                                         @Nullable final String originalInvoiceReferenceCode,
                                                         final Iterable<PluginProperty> pluginProperties,
                                                         final UUID kbTenantId,
@@ -136,7 +136,7 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
      * @param account                      Kill Bill account
      * @param invoice                      Kill Bill invoice associated with the taxable items
      * @param taxableItems                 taxable invoice items associated with that invoice
-     * @param adjustmentItems              invoice item adjustments associated (null for Sales document)
+     * @param adjustmentItems              invoice item adjustments associated (empty for Sales document)
      * @param originalInvoiceReferenceCode the original AvaTax reference code  (null for Sales document)
      * @param pluginProperties             Kill Bill plugin properties
      * @param utcToday                     today's date
@@ -149,11 +149,11 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
                                        @Nullable final String originalInvoiceReferenceCode,
                                        final Iterable<PluginProperty> pluginProperties,
                                        final LocalDate utcToday) {
-        Preconditions.checkState((originalInvoiceReferenceCode == null && adjustmentItems == null) ||
-                                 (originalInvoiceReferenceCode != null && adjustmentItems != null),
+        Preconditions.checkState((originalInvoiceReferenceCode == null && (adjustmentItems == null || adjustmentItems.isEmpty())) ||
+                                 (originalInvoiceReferenceCode != null && (adjustmentItems != null && !adjustmentItems.isEmpty())),
                                  "Invalid combination of originalInvoiceReferenceCode %s and adjustments %s", originalInvoiceReferenceCode, adjustmentItems);
 
-        Preconditions.checkState(adjustmentItems == null || adjustmentItems.size() == taxableItems.size(),
+        Preconditions.checkState((adjustmentItems == null || adjustmentItems.isEmpty()) || adjustmentItems.size() == taxableItems.size(),
                                  "Invalid number of adjustments %s for taxable items %s", adjustmentItems, taxableItems);
 
         final GetTaxRequest taxRequest = new GetTaxRequest();

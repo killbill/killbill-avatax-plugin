@@ -48,6 +48,6 @@ public class AvaTaxInvoicePluginApi extends PluginInvoicePluginApi {
 
     @Override
     public List<InvoiceItem> getAdditionalInvoiceItems(final Invoice invoice, final Iterable<PluginProperty> properties, final CallContext context) {
-        return getAdditionalTaxInvoiceItems(invoice, calculator, context);
+        return getAdditionalTaxInvoiceItems(calculator, invoice, properties, context);
     }
 }

@@ -112,12 +112,20 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
 
     private Collection<InvoiceItem> toInvoiceItems(final UUID invoiceId, final InvoiceItem taxableItem, final TaxLine taxLine, final LocalDate utcToday) {
         if (taxLine.TaxDetails == null || taxLine.TaxDetails.length == 0) {
-            return ImmutableList.<InvoiceItem>of(buildTaxItem(taxableItem, invoiceId, utcToday, BigDecimal.valueOf(taxLine.Tax), "Tax"));
+            final InvoiceItem taxItem = buildTaxItem(taxableItem, invoiceId, utcToday, BigDecimal.valueOf(taxLine.Tax), "Tax");
+            if (taxItem == null) {
+                return ImmutableList.<InvoiceItem>of();
+            } else {
+                return ImmutableList.<InvoiceItem>of(taxItem);
+            }
         } else {
             final Collection<InvoiceItem> invoiceItems = new LinkedList<InvoiceItem>();
             for (final TaxDetail taxDetail : taxLine.TaxDetails) {
                 final String description = Objects.firstNonNull(taxDetail.TaxName, Objects.firstNonNull(taxDetail.JurisName, "Tax"));
-                invoiceItems.add(buildTaxItem(taxableItem, invoiceId, utcToday, BigDecimal.valueOf(taxDetail.Tax), description));
+                final InvoiceItem taxItem = buildTaxItem(taxableItem, invoiceId, utcToday, BigDecimal.valueOf(taxDetail.Tax), description);
+                if (taxItem != null) {
+                    invoiceItems.add(taxItem);
+                }
             }
             return invoiceItems;
         }

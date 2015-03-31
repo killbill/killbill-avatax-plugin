@@ -111,7 +111,9 @@ public class TaxRatesTaxCalculator extends AvaTaxTaxCalculatorBase {
                                                      utcToday,
                                                      BigDecimal.valueOf(taxRates.totalRate).multiply(netItemAmount),
                                                      "Tax");
-            newTaxItems.add(taxItem);
+            if (taxItem != null) {
+                newTaxItems.add(taxItem);
+            }
         } else {
             for (final JurisTaxRate jurisTaxRate : taxRates.rates) {
                 if (rateTypes.isEmpty() || rateTypes.contains(jurisTaxRate.type)) {
@@ -120,7 +122,9 @@ public class TaxRatesTaxCalculator extends AvaTaxTaxCalculatorBase {
                                                              utcToday,
                                                              BigDecimal.valueOf(jurisTaxRate.rate).multiply(netItemAmount),
                                                              Objects.firstNonNull(jurisTaxRate.name, "Tax"));
-                    newTaxItems.add(taxItem);
+                    if (taxItem != null) {
+                        newTaxItems.add(taxItem);
+                    }
                 }
             }
         }

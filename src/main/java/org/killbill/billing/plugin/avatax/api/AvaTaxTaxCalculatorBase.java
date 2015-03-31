@@ -110,10 +110,11 @@ public abstract class AvaTaxTaxCalculatorBase extends PluginTaxCalculator {
                 kbInvoiceItems.put(taxableItem.getId(), ImmutableList.<InvoiceItem>of());
             }
         }
-        final LocalDate utcToday = clock.getUTCToday();
+        // Don't use clock.getUTCToday(), see https://github.com/killbill/killbill-platform/issues/4
+        final LocalDate taxItemsDate = newInvoice.getInvoiceDate();
 
         try {
-            return buildInvoiceItems(account, newInvoice, invoice, taxableItems, adjustmentItems, originalInvoiceReferenceCode, pluginProperties, kbTenantId, kbInvoiceItems, utcToday);
+            return buildInvoiceItems(account, newInvoice, invoice, taxableItems, adjustmentItems, originalInvoiceReferenceCode, pluginProperties, kbTenantId, kbInvoiceItems, taxItemsDate);
         } catch (final AvaTaxClientException e) {
             throw new RuntimeException(e);
         } catch (final SQLException e) {

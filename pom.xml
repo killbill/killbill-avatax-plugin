@@ -15,8 +15,7 @@
   ~ License for the specific language governing permissions and limitations
   ~ under the License.
   -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <artifactId>killbill-oss-parent</artifactId>
@@ -25,7 +24,7 @@
     </parent>
     <groupId>org.kill-bill.billing.plugin.java</groupId>
     <artifactId>avatax-plugin</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.1.0-SNAPSHOT</version>
     <packaging>bundle</packaging>
     <name>Kill Bill OSGI AvaTax plugin</name>
     <description>Kill Bill AvaTax plugin</description>
@@ -160,7 +159,7 @@
                 <configuration>
                     <instructions>
                         <Bundle-Activator>org.killbill.billing.plugin.avatax.core.AvaTaxActivator</Bundle-Activator>
-                        <Export-Package/>
+                        <Export-Package />
                         <Private-Package>org.killbill.billing.plugin.avatax.*</Private-Package>
                         <!-- Optional resolution because exported by the Felix system bundle -->
                         <Import-Package>org.killbill.billing.account.api;

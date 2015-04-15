@@ -5,10 +5,17 @@ Kill Bill tax plugin for [Avalara AvaTax](http://www.avalara.com/products/avatax
 
 Release builds are available on [Maven Central](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.kill-bill.billing.plugin.java%22%20AND%20a%3A%22avatax-plugin%22) with coordinates `org.kill-bill.billing.plugin.java:avatax-plugin`.
 
+Kill Bill compatibility
+-----------------------
+
+| Plugin version | Kill Bill version |
+| -------------: | ----------------: |
+| 0.x.y          | 0.14.z            |
+
 Requirements
 ------------
 
-The plugin needs a database. The latest version of the schema can be found here: https://raw.github.com/killbill/killbill-avatax-plugin/master/src/main/resources/ddl.sql.
+The plugin needs a database. The latest version of the schema can be found [here](https://raw.github.com/killbill/killbill-avatax-plugin/master/src/main/resources/ddl.sql).
 
 Configuration
 -------------

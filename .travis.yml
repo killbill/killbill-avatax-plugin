@@ -5,6 +5,8 @@ cache:
   directories:
       - $HOME/.m2
 
+before_script: '[ "${TRAVIS_PULL_REQUEST}" = "false" ] && printf "org.killbill.billing.plugin.avatax.url=${AVATAX_URL}\\norg.killbill.billing.plugin.avatax.accountNumber=${AVATAX_ACCOUNT_NUMBER}\\norg.killbill.billing.plugin.avatax.licenseKey=${AVATAX_LICENSE_KEY}\\norg.killbill.billing.plugin.avatax.companyCode=${AVATAX_COMPANY_CODE}\\norg.killbill.billing.plugin.avatax.taxratesapi.url=${TAXRATESAPI_URL}\\norg.killbill.billing.plugin.avatax.taxratesapi.apiKey=${TAXRATESAPI_API_KEY}\\n" > src/test/resources/avatax.properties'
+after_script: rm -f src/test/resources/avatax.properties
 script: if [[ -v COMMAND ]]; then $COMMAND; else travis_retry mvn clean install $PHASE | egrep -v 'Download|Install'; [ ${PIPESTATUS[0]} == 0 ]; fi
 # Remove --quiet to avoid timeouts
 install: mvn -U install -DskipTests=true | egrep -v 'Download|Install'
@@ -21,15 +23,15 @@ matrix:
   allow_failures:
     - jdk: oraclejdk8
   include:
-    - env: PHASE="-Ptravis-nodb"
+    - env: PHASE="-Ptravis"
       jdk: openjdk7
-    - env: PHASE="-Ptravis-nodb"
+    - env: PHASE="-Ptravis"
       jdk: oraclejdk7
-    - env: PHASE="-Ptravis-nodb,jdk17"
+    - env: PHASE="-Ptravis,jdk17"
       jdk: openjdk7
-    - env: PHASE="-Ptravis-nodb,jdk17"
+    - env: PHASE="-Ptravis,jdk17"
       jdk: oraclejdk7
-    - env: PHASE="-Ptravis-nodb,jdk18"
+    - env: PHASE="-Ptravis,jdk18"
       jdk: oraclejdk8
   fast_finish: true
 

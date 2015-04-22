@@ -108,7 +108,19 @@ public class TaxRatesClient extends HttpClient {
         } catch (final URISyntaxException e) {
             throw new AvaTaxClientException(e);
         } catch (final InvalidRequest e) {
-            throw new AvaTaxClientException(e);
+            String message = e.getMessage();
+            if (e.getResponse() != null) {
+                String responseBody = null;
+                try {
+                    responseBody = e.getResponse().getResponseBody();
+                } catch (final IOException ignored) {
+                }
+
+                if (responseBody != null) {
+                    message += "[" + responseBody + "]";
+                }
+            }
+            throw new AvaTaxClientException(message, e);
         }
     }
 }

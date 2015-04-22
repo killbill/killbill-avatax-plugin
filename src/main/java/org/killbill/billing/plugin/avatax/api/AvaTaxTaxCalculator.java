@@ -46,6 +46,7 @@ import org.killbill.billing.plugin.avatax.client.model.Line;
 import org.killbill.billing.plugin.avatax.client.model.TaxDetail;
 import org.killbill.billing.plugin.avatax.client.model.TaxLine;
 import org.killbill.billing.plugin.avatax.client.model.TaxOverrideDef;
+import org.killbill.billing.plugin.avatax.core.AvaTaxConfigurationHandler;
 import org.killbill.billing.plugin.avatax.dao.AvaTaxDao;
 import org.killbill.clock.Clock;
 import org.slf4j.Logger;
@@ -63,13 +64,11 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
 
     private static final String CLIENT_NAME = "KILLBILL";
 
-    private final String companyCode;
-    private final AvaTaxClient client;
+    private final AvaTaxConfigurationHandler avaTaxConfigurationHandler;
 
-    public AvaTaxTaxCalculator(final String companyCode, final AvaTaxClient client, final AvaTaxDao dao, final Clock clock) {
+    public AvaTaxTaxCalculator(final AvaTaxConfigurationHandler avaTaxConfigurationHandler, final AvaTaxDao dao, final Clock clock) {
         super(dao, clock);
-        this.companyCode = companyCode;
-        this.client = client;
+        this.avaTaxConfigurationHandler = avaTaxConfigurationHandler;
     }
 
     @Override
@@ -83,10 +82,13 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
                                                         final UUID kbTenantId,
                                                         final Map<UUID, Iterable<InvoiceItem>> kbInvoiceItems,
                                                         final LocalDate utcToday) throws AvaTaxClientException, SQLException {
-        final GetTaxRequest taxRequest = toTaxRequest(account, invoice, taxableItems.values(), adjustmentItems, originalInvoiceReferenceCode, pluginProperties, utcToday);
+        final AvaTaxClient avaTaxClient = avaTaxConfigurationHandler.getConfigurable(kbTenantId);
+        final String companyCode = avaTaxClient.getCompanyCode();
+
+        final GetTaxRequest taxRequest = toTaxRequest(companyCode, account, invoice, taxableItems.values(), adjustmentItems, originalInvoiceReferenceCode, pluginProperties, utcToday);
         logger.info("GetTaxRequest: {}", taxRequest.simplifiedToString());
 
-        final GetTaxResult taxResult = client.getTax(taxRequest);
+        final GetTaxResult taxResult = avaTaxClient.getTax(taxRequest);
         dao.addResponse(account.getId(), invoice.getId(), kbInvoiceItems, taxResult, clock.getUTCNow(), kbTenantId);
 
         // Align both log lines for readability
@@ -150,7 +152,8 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
      * @param utcToday                     today's date
      * @return GetTaxRequest object
      */
-    private GetTaxRequest toTaxRequest(final Account account,
+    private GetTaxRequest toTaxRequest(final String companyCode,
+                                       final Account account,
                                        final Invoice invoice,
                                        final Collection<InvoiceItem> taxableItems,
                                        @Nullable final Map<UUID, Collection<InvoiceItem>> adjustmentItems,

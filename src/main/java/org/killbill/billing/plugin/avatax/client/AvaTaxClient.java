@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.GeneralSecurityException;
 import java.text.SimpleDateFormat;
+import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
@@ -31,6 +32,7 @@ import org.killbill.billing.plugin.avatax.client.model.GeoTaxResult;
 import org.killbill.billing.plugin.avatax.client.model.GetTaxRequest;
 import org.killbill.billing.plugin.avatax.client.model.GetTaxResult;
 import org.killbill.billing.plugin.avatax.client.model.ValidateResult;
+import org.killbill.billing.plugin.avatax.core.AvaTaxActivator;
 import org.killbill.billing.plugin.util.http.HttpClient;
 import org.killbill.billing.plugin.util.http.InvalidRequest;
 
@@ -40,13 +42,24 @@ import com.google.common.collect.ImmutableMap;
 
 public class AvaTaxClient extends HttpClient {
 
-    public AvaTaxClient(final String url,
-                        final String username,
-                        final String password,
-                        final String proxyHost,
-                        final Integer proxyPort,
-                        final Boolean strictSSL) throws GeneralSecurityException {
-        super(url, username, password, proxyHost, proxyPort, strictSSL);
+    private final String companyCode;
+
+    public AvaTaxClient(final Properties properties) throws GeneralSecurityException {
+        super(properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "url"),
+              properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "accountNumber"),
+              properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "licenseKey"),
+              properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "proxyHost"),
+              ClientUtils.getIntegerProperty(properties, "proxyPort"),
+              ClientUtils.getBooleanProperty(properties, "strictSSL"));
+        this.companyCode = properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "companyCode");
+    }
+
+    public String getCompanyCode() {
+        return companyCode;
+    }
+
+    public boolean isConfigured() {
+        return url != null && username != null && password != null;
     }
 
     @Override

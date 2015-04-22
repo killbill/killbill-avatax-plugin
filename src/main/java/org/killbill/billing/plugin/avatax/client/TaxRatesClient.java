@@ -20,10 +20,12 @@ package org.killbill.billing.plugin.avatax.client;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.GeneralSecurityException;
+import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
 import org.killbill.billing.plugin.avatax.client.model.TaxRateResult;
+import org.killbill.billing.plugin.avatax.core.AvaTaxActivator;
 import org.killbill.billing.plugin.util.http.HttpClient;
 import org.killbill.billing.plugin.util.http.InvalidRequest;
 
@@ -35,13 +37,25 @@ public class TaxRatesClient extends HttpClient {
 
     private final String apiKey;
 
-    public TaxRatesClient(final String url,
-                          final String apikey,
-                          final String proxyHost,
-                          final Integer proxyPort,
-                          final Boolean strictSSL) throws GeneralSecurityException {
+    public TaxRatesClient(final Properties properties) throws GeneralSecurityException {
+        this(properties.getProperty(AvaTaxActivator.TAX_RATES_API_PROPERTY_PREFIX + "url"),
+             properties.getProperty(AvaTaxActivator.TAX_RATES_API_PROPERTY_PREFIX + "apiKey"),
+             properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "proxyHost"),
+             ClientUtils.getIntegerProperty(properties, "proxyPort"),
+             ClientUtils.getBooleanProperty(properties, "strictSSL"));
+    }
+
+    private TaxRatesClient(final String url,
+                           final String apiKey,
+                           final String proxyHost,
+                           final Integer proxyPort,
+                           final Boolean strictSSL) throws GeneralSecurityException {
         super(url, null, null, proxyHost, proxyPort, strictSSL);
-        this.apiKey = apikey;
+        this.apiKey = apiKey;
+    }
+
+    public boolean isConfigured() {
+        return url != null && apiKey != null;
     }
 
     public TaxRateResult fromPostal(final String postal, final String country) throws AvaTaxClientException {

@@ -23,7 +23,7 @@ import org.killbill.billing.invoice.api.Invoice;
 import org.killbill.billing.invoice.api.InvoiceItem;
 import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.api.invoice.PluginInvoicePluginApi;
-import org.killbill.billing.plugin.avatax.client.TaxRatesClient;
+import org.killbill.billing.plugin.avatax.core.TaxRatesConfigurationHandler;
 import org.killbill.billing.plugin.avatax.dao.AvaTaxDao;
 import org.killbill.billing.util.callcontext.CallContext;
 import org.killbill.clock.Clock;
@@ -35,14 +35,14 @@ public class TaxRatesInvoicePluginApi extends PluginInvoicePluginApi {
 
     private final TaxRatesTaxCalculator calculator;
 
-    public TaxRatesInvoicePluginApi(final TaxRatesClient client,
+    public TaxRatesInvoicePluginApi(final TaxRatesConfigurationHandler taxRatesConfigurationHandler,
                                     final AvaTaxDao dao,
                                     final OSGIKillbillAPI killbillApi,
                                     final OSGIConfigPropertiesService configProperties,
                                     final OSGIKillbillLogService logService,
                                     final Clock clock) {
         super(killbillApi, configProperties, logService, clock);
-        this.calculator = new TaxRatesTaxCalculator(client, dao, clock);
+        this.calculator = new TaxRatesTaxCalculator(taxRatesConfigurationHandler, dao, clock);
     }
 
     @Override

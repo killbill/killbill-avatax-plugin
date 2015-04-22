@@ -34,9 +34,9 @@ import org.killbill.billing.invoice.api.InvoiceItem;
 import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.api.PluginProperties;
 import org.killbill.billing.plugin.avatax.client.AvaTaxClientException;
-import org.killbill.billing.plugin.avatax.client.TaxRatesClient;
 import org.killbill.billing.plugin.avatax.client.model.JurisTaxRate;
 import org.killbill.billing.plugin.avatax.client.model.TaxRateResult;
+import org.killbill.billing.plugin.avatax.core.TaxRatesConfigurationHandler;
 import org.killbill.billing.plugin.avatax.dao.AvaTaxDao;
 import org.killbill.clock.Clock;
 import org.slf4j.Logger;
@@ -53,11 +53,11 @@ public class TaxRatesTaxCalculator extends AvaTaxTaxCalculatorBase {
 
     private static final Logger logger = LoggerFactory.getLogger(TaxRatesTaxCalculator.class);
 
-    private final TaxRatesClient client;
+    private final TaxRatesConfigurationHandler taxRatesConfigurationHandler;
 
-    public TaxRatesTaxCalculator(final TaxRatesClient client, final AvaTaxDao dao, final Clock clock) {
+    public TaxRatesTaxCalculator(final TaxRatesConfigurationHandler taxRatesConfigurationHandler, final AvaTaxDao dao, final Clock clock) {
         super(dao, clock);
-        this.client = client;
+        this.taxRatesConfigurationHandler = taxRatesConfigurationHandler;
     }
 
     @Override
@@ -72,7 +72,7 @@ public class TaxRatesTaxCalculator extends AvaTaxTaxCalculatorBase {
                                                         final Map<UUID, Iterable<InvoiceItem>> kbInvoiceItems,
                                                         final LocalDate utcToday) throws AvaTaxClientException, SQLException {
         // Expected tax rates
-        final TaxRateResult taxRates = getTaxRates(account);
+        final TaxRateResult taxRates = getTaxRates(account, kbTenantId);
         if (taxRates == null) {
             return ImmutableList.<InvoiceItem>of();
         }
@@ -131,16 +131,16 @@ public class TaxRatesTaxCalculator extends AvaTaxTaxCalculatorBase {
         return newTaxItems;
     }
 
-    private TaxRateResult getTaxRates(final Account account) {
+    private TaxRateResult getTaxRates(final Account account, final UUID kbTenantId) {
         try {
             if (account.getAddress1() != null &&
                 account.getCity() != null &&
                 account.getStateOrProvince() != null &&
                 account.getPostalCode() != null &&
                 account.getCountry() != null) {
-                return client.fromAddress(account.getAddress1(), account.getCity(), account.getStateOrProvince(), account.getPostalCode(), account.getCountry());
+                return taxRatesConfigurationHandler.getConfigurable(kbTenantId).fromAddress(account.getAddress1(), account.getCity(), account.getStateOrProvince(), account.getPostalCode(), account.getCountry());
             } else if (account.getPostalCode() != null && account.getCountry() != null) {
-                return client.fromPostal(account.getPostalCode(), account.getCountry());
+                return taxRatesConfigurationHandler.getConfigurable(kbTenantId).fromPostal(account.getPostalCode(), account.getCountry());
             } else {
                 logger.warn("Not enough information to retrieve tax rates for account {}", account.getId());
                 return null;

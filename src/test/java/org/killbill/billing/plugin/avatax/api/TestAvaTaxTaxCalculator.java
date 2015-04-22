@@ -29,13 +29,19 @@ import org.killbill.billing.catalog.api.Currency;
 import org.killbill.billing.invoice.api.Invoice;
 import org.killbill.billing.invoice.api.InvoiceItem;
 import org.killbill.billing.invoice.api.InvoiceItemType;
+import org.killbill.billing.payment.api.Payment;
 import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.TestUtils;
 import org.killbill.billing.plugin.api.invoice.PluginTaxCalculator;
 import org.killbill.billing.plugin.avatax.AvaTaxRemoteTestBase;
+import org.killbill.billing.plugin.avatax.core.AvaTaxActivator;
+import org.killbill.billing.plugin.avatax.core.AvaTaxConfigurationHandler;
+import org.killbill.billing.plugin.avatax.core.TaxRatesConfigurationHandler;
 import org.killbill.billing.plugin.avatax.dao.AvaTaxDao;
 import org.killbill.clock.Clock;
 import org.killbill.clock.DefaultClock;
+import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillAPI;
+import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillLogService;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -52,6 +58,8 @@ public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
     private Account account;
     private Invoice newInvoice;
     private AvaTaxDao dao;
+    private OSGIKillbillAPI osgiKillbillAPI;
+    private OSGIKillbillLogService osgiKillbillLogService;
 
     @BeforeMethod(groups = "slow")
     public void setUp() throws Exception {
@@ -61,17 +69,25 @@ public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
         account = TestUtils.buildAccount(Currency.USD, "45 Fremont Street", null, "San Francisco", "CA", "94105", "US");
         newInvoice = TestUtils.buildInvoice(account);
         dao = new AvaTaxDao(embeddedDB.getDataSource());
+
+        final Payment payment = TestUtils.buildPayment(account.getId(), account.getPaymentMethodId(), account.getCurrency());
+        osgiKillbillAPI = TestUtils.buildOSGIKillbillAPI(account, payment, null);
+        osgiKillbillLogService = TestUtils.buildLogService();
     }
 
     @Test(groups = "slow")
     public void testWithAvaTaxTaxCalculator() throws Exception {
-        final PluginTaxCalculator calculator = new AvaTaxTaxCalculator(companyCode, client, dao, clock);
+        final AvaTaxConfigurationHandler avaTaxConfigurationHandler = new AvaTaxConfigurationHandler(AvaTaxActivator.PLUGIN_NAME, osgiKillbillAPI, osgiKillbillLogService);
+        avaTaxConfigurationHandler.setDefaultConfigurable(client);
+        final PluginTaxCalculator calculator = new AvaTaxTaxCalculator(avaTaxConfigurationHandler, dao, clock);
         testComputeItemsOverTime(calculator);
     }
 
     @Test(groups = "slow")
     public void testWithTaxRatesTaxCalculator() throws Exception {
-        final PluginTaxCalculator calculator = new TaxRatesTaxCalculator(taxRatesClient, dao, clock);
+        final TaxRatesConfigurationHandler taxRatesConfigurationHandler = new TaxRatesConfigurationHandler(AvaTaxActivator.PLUGIN_NAME, osgiKillbillAPI, osgiKillbillLogService);
+        taxRatesConfigurationHandler.setDefaultConfigurable(taxRatesClient);
+        final PluginTaxCalculator calculator = new TaxRatesTaxCalculator(taxRatesConfigurationHandler, dao, clock);
         testComputeItemsOverTime(calculator);
     }
 

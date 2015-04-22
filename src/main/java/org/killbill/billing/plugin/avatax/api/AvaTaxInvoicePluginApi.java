@@ -1,6 +1,6 @@
 /*
- * Copyright 2014 Groupon, Inc
- * Copyright 2014 The Billing Project, LLC
+ * Copyright 2014-2015 Groupon, Inc
+ * Copyright 2014-2015 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -23,7 +23,7 @@ import org.killbill.billing.invoice.api.Invoice;
 import org.killbill.billing.invoice.api.InvoiceItem;
 import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.api.invoice.PluginInvoicePluginApi;
-import org.killbill.billing.plugin.avatax.client.AvaTaxClient;
+import org.killbill.billing.plugin.avatax.core.AvaTaxConfigurationHandler;
 import org.killbill.billing.plugin.avatax.dao.AvaTaxDao;
 import org.killbill.billing.util.callcontext.CallContext;
 import org.killbill.clock.Clock;
@@ -35,15 +35,14 @@ public class AvaTaxInvoicePluginApi extends PluginInvoicePluginApi {
 
     private final AvaTaxTaxCalculator calculator;
 
-    public AvaTaxInvoicePluginApi(final AvaTaxClient client,
+    public AvaTaxInvoicePluginApi(final AvaTaxConfigurationHandler avaTaxConfigurationHandler,
                                   final AvaTaxDao dao,
-                                  final String companyCode,
                                   final OSGIKillbillAPI killbillApi,
                                   final OSGIConfigPropertiesService configProperties,
                                   final OSGIKillbillLogService logService,
                                   final Clock clock) {
         super(killbillApi, configProperties, logService, clock);
-        this.calculator = new AvaTaxTaxCalculator(companyCode, client, dao, clock);
+        this.calculator = new AvaTaxTaxCalculator(avaTaxConfigurationHandler, dao, clock);
     }
 
     @Override

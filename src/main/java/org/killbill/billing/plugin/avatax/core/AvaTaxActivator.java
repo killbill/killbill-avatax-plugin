@@ -1,6 +1,6 @@
 /*
- * Copyright 2014 Groupon, Inc
- * Copyright 2014 The Billing Project, LLC
+ * Copyright 2014-2015 Groupon, Inc
+ * Copyright 2014-2015 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -21,8 +21,8 @@ import java.util.Hashtable;
 
 import org.killbill.billing.invoice.plugin.api.InvoicePluginApi;
 import org.killbill.billing.osgi.api.OSGIPluginProperties;
-import org.killbill.billing.plugin.avatax.api.AvaTaxInvoicePluginApi;
-import org.killbill.billing.plugin.avatax.api.TaxRatesInvoicePluginApi;
+import org.killbill.billing.plugin.api.notification.PluginConfigurationEventHandler;
+import org.killbill.billing.plugin.avatax.api.AvalaraInvoicePluginApi;
 import org.killbill.billing.plugin.avatax.client.AvaTaxClient;
 import org.killbill.billing.plugin.avatax.client.TaxRatesClient;
 import org.killbill.billing.plugin.avatax.dao.AvaTaxDao;
@@ -32,14 +32,15 @@ import org.killbill.killbill.osgi.libs.killbill.KillbillActivatorBase;
 import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillEventDispatcher;
 import org.osgi.framework.BundleContext;
 
-import com.google.common.base.Strings;
-
 public class AvaTaxActivator extends KillbillActivatorBase {
 
     public static final String PLUGIN_NAME = "killbill-avatax";
 
     public static final String PROPERTY_PREFIX = "org.killbill.billing.plugin.avatax.";
     public static final String TAX_RATES_API_PROPERTY_PREFIX = "org.killbill.billing.plugin.avatax.taxratesapi.";
+
+    private AvaTaxConfigurationHandler avaTaxConfigurationHandler;
+    private TaxRatesConfigurationHandler taxRatesConfigurationHandler;
 
     @Override
     public void start(final BundleContext context) throws Exception {
@@ -48,57 +49,29 @@ public class AvaTaxActivator extends KillbillActivatorBase {
         final AvaTaxDao dao = new AvaTaxDao(dataSource.getDataSource());
         final Clock clock = new DefaultClock();
 
-        final String proxyPortString = configProperties.getString(PROPERTY_PREFIX + "proxyPort");
-        final String strictSSLString = configProperties.getString(PROPERTY_PREFIX + "strictSSL");
-        final String proxyHost = configProperties.getString(PROPERTY_PREFIX + "proxyHost");
-        final Integer proxyPort = Strings.isNullOrEmpty(proxyPortString) ? null : Integer.valueOf(proxyPortString);
-        final boolean strictSSL = Strings.isNullOrEmpty(strictSSLString) ? true : Boolean.valueOf(strictSSLString);
-
         // Avalara AvaTax API
-        final String avaTaxUrl = configProperties.getString(PROPERTY_PREFIX + "url");
-        final String avaTaxAccountNumber = configProperties.getString(PROPERTY_PREFIX + "accountNumber");
-        final String avaTaxLicenseKey = configProperties.getString(PROPERTY_PREFIX + "licenseKey");
+        final AvaTaxClient globalAvataxClient = new AvaTaxClient(configProperties.getProperties());
+        avaTaxConfigurationHandler.setDefaultConfigurable(globalAvataxClient);
 
         // Avalara Tax Rates API
-        final String taxRatesApiUrl = configProperties.getString(TAX_RATES_API_PROPERTY_PREFIX + "url");
-        final String taxRatesApiApiKey = configProperties.getString(TAX_RATES_API_PROPERTY_PREFIX + "apiKey");
+        final TaxRatesClient globalTaxRatesClient = new TaxRatesClient(configProperties.getProperties());
+        taxRatesConfigurationHandler.setDefaultConfigurable(globalTaxRatesClient);
 
-        final InvoicePluginApi invoicePluginApi;
-        if (avaTaxUrl != null && avaTaxAccountNumber != null && avaTaxLicenseKey != null) {
-            final AvaTaxClient avataxClient = new AvaTaxClient(avaTaxUrl,
-                                                               avaTaxAccountNumber,
-                                                               avaTaxLicenseKey,
-                                                               proxyHost,
-                                                               proxyPort,
-                                                               strictSSL);
-            invoicePluginApi = new AvaTaxInvoicePluginApi(avataxClient,
-                                                          dao,
-                                                          configProperties.getString(PROPERTY_PREFIX + "companyCode"),
-                                                          killbillAPI,
-                                                          configProperties,
-                                                          logService,
-                                                          clock);
-        } else if (taxRatesApiUrl != null && taxRatesApiApiKey != null) {
-            final TaxRatesClient taxRatesClient = new TaxRatesClient(taxRatesApiUrl,
-                                                                     taxRatesApiApiKey,
-                                                                     proxyHost,
-                                                                     proxyPort,
-                                                                     strictSSL);
-            invoicePluginApi = new TaxRatesInvoicePluginApi(taxRatesClient,
-                                                            dao,
-                                                            killbillAPI,
-                                                            configProperties,
-                                                            logService,
-                                                            clock);
-        } else {
-            throw new IllegalStateException("AvaTax plugin mis-configured!");
-        }
+        final InvoicePluginApi invoicePluginApi = new AvalaraInvoicePluginApi(avaTaxConfigurationHandler,
+                                                                              taxRatesConfigurationHandler,
+                                                                              dao,
+                                                                              killbillAPI,
+                                                                              configProperties,
+                                                                              logService,
+                                                                              clock);
         registerInvoicePluginApi(context, invoicePluginApi);
     }
 
     @Override
     public OSGIKillbillEventDispatcher.OSGIKillbillEventHandler getOSGIKillbillEventHandler() {
-        return null;
+        avaTaxConfigurationHandler = new AvaTaxConfigurationHandler(PLUGIN_NAME, killbillAPI, logService);
+        taxRatesConfigurationHandler = new TaxRatesConfigurationHandler(PLUGIN_NAME, killbillAPI, logService);
+        return new PluginConfigurationEventHandler(avaTaxConfigurationHandler, taxRatesConfigurationHandler);
     }
 
     private void registerInvoicePluginApi(final BundleContext context, final InvoicePluginApi api) {

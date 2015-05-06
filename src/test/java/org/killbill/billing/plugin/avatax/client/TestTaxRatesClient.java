@@ -49,7 +49,7 @@ public class TestTaxRatesClient extends AvaTaxRemoteTestBase {
         Assert.assertEquals(result.rates.get(1).type, "State");
 
         Assert.assertEquals(result.rates.get(2).rate, 1.25);
-        Assert.assertEquals(result.rates.get(2).name, "SAN FRANCISCO COUNTY PUBLIC FINANCE AUTHORITY (SFPF) / SAN FRANCISCO COUNTY TRANSPORTATION AUTHORITY (SFTA) / BAY AREA RAPID TRA");
+        Assert.assertEquals(result.rates.get(2).name, "SAN FRANCISCO COUNTY DISTRICT TAX SP");
         Assert.assertEquals(result.rates.get(2).type, "Special");
     }
 }

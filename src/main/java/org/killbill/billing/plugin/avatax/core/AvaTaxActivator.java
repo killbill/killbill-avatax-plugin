@@ -50,11 +50,11 @@ public class AvaTaxActivator extends KillbillActivatorBase {
         final Clock clock = new DefaultClock();
 
         // Avalara AvaTax API
-        final AvaTaxClient globalAvataxClient = new AvaTaxClient(configProperties.getProperties());
+        final AvaTaxClient globalAvataxClient = avaTaxConfigurationHandler.createConfigurable(configProperties.getProperties());
         avaTaxConfigurationHandler.setDefaultConfigurable(globalAvataxClient);
 
         // Avalara Tax Rates API
-        final TaxRatesClient globalTaxRatesClient = new TaxRatesClient(configProperties.getProperties());
+        final TaxRatesClient globalTaxRatesClient = taxRatesConfigurationHandler.createConfigurable(configProperties.getProperties());
         taxRatesConfigurationHandler.setDefaultConfigurable(globalTaxRatesClient);
 
         final InvoicePluginApi invoicePluginApi = new AvalaraInvoicePluginApi(avaTaxConfigurationHandler,

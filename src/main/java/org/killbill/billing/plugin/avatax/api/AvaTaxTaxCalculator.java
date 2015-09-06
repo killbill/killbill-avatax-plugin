@@ -59,6 +59,7 @@ import com.google.common.collect.ImmutableList;
 public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
 
     public static final String PROPERTY_COMPANY_CODE = "companyCode";
+    public static final String CUSTOMER_USAGE_TYPE = "customerUsageType";
 
     private static final Logger logger = LoggerFactory.getLogger(AvaTaxTaxCalculator.class);
 
@@ -212,8 +213,9 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
         taxRequest.DetailLevel = DetailLevel.Tax;
         taxRequest.Client = CLIENT_NAME;
 
+        taxRequest.CustomerUsageType = PluginProperties.findPluginPropertyValue(CUSTOMER_USAGE_TYPE, pluginProperties);
+
         // Nice-to-have (via plugin properties or tags?)
-        taxRequest.CustomerUsageType = null;
         taxRequest.ExemptionNo = null;
         taxRequest.Discount = BigDecimal.ZERO;
         // Required for VAT

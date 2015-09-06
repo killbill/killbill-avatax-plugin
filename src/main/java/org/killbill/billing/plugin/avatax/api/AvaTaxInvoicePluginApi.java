@@ -17,19 +17,29 @@
 
 package org.killbill.billing.plugin.avatax.api;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
+import org.killbill.billing.ObjectType;
 import org.killbill.billing.invoice.api.Invoice;
 import org.killbill.billing.invoice.api.InvoiceItem;
 import org.killbill.billing.payment.api.PluginProperty;
+import org.killbill.billing.plugin.api.PluginProperties;
 import org.killbill.billing.plugin.api.invoice.PluginInvoicePluginApi;
 import org.killbill.billing.plugin.avatax.core.AvaTaxConfigurationHandler;
 import org.killbill.billing.plugin.avatax.dao.AvaTaxDao;
 import org.killbill.billing.util.callcontext.CallContext;
+import org.killbill.billing.util.callcontext.TenantContext;
+import org.killbill.billing.util.customfield.CustomField;
 import org.killbill.clock.Clock;
 import org.killbill.killbill.osgi.libs.killbill.OSGIConfigPropertiesService;
 import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillAPI;
 import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillLogService;
+
+import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 public class AvaTaxInvoicePluginApi extends PluginInvoicePluginApi {
 
@@ -47,6 +57,30 @@ public class AvaTaxInvoicePluginApi extends PluginInvoicePluginApi {
 
     @Override
     public List<InvoiceItem> getAdditionalInvoiceItems(final Invoice invoice, final Iterable<PluginProperty> properties, final CallContext context) {
-        return getAdditionalTaxInvoiceItems(calculator, invoice, properties, context);
+        final Collection<PluginProperty> pluginProperties = new ArrayList<PluginProperty>(ImmutableList.<PluginProperty>copyOf(properties));
+
+        checkForTaxExemption(invoice, pluginProperties, context);
+
+        return getAdditionalTaxInvoiceItems(calculator, invoice, pluginProperties, context);
+    }
+
+    private void checkForTaxExemption(final Invoice invoice, final Collection<PluginProperty> properties, final TenantContext context) {
+        // Overridden by plugin properties?
+        if (PluginProperties.findPluginPropertyValue(AvaTaxTaxCalculator.CUSTOMER_USAGE_TYPE, properties) != null) {
+            return;
+        }
+
+        final List<CustomField> customFields = killbillAPI.getCustomFieldUserApi().getCustomFieldsForObject(invoice.getAccountId(), ObjectType.ACCOUNT, context);
+        final CustomField customField = Iterables.<CustomField>tryFind(customFields,
+                                                                       new Predicate<CustomField>() {
+                                                                           @Override
+                                                                           public boolean apply(final CustomField customField) {
+                                                                               return AvaTaxTaxCalculator.CUSTOMER_USAGE_TYPE.equals(customField.getFieldName());
+                                                                           }
+                                                                       }).orNull();
+
+        if (customField != null) {
+            properties.add(new PluginProperty(AvaTaxTaxCalculator.CUSTOMER_USAGE_TYPE, customField.getFieldValue(), false));
+        }
     }
 }

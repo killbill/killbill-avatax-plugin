@@ -84,6 +84,30 @@ public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
     }
 
     @Test(groups = "slow")
+    public void testExemptionWithAvaTaxTaxCalculator() throws Exception {
+        final AvaTaxConfigurationHandler avaTaxConfigurationHandler = new AvaTaxConfigurationHandler(AvaTaxActivator.PLUGIN_NAME, osgiKillbillAPI, osgiKillbillLogService);
+        avaTaxConfigurationHandler.setDefaultConfigurable(client);
+        final PluginTaxCalculator calculator = new AvaTaxTaxCalculator(avaTaxConfigurationHandler, dao, clock);
+
+        final Collection<PluginProperty> exemptProperties = new LinkedList<PluginProperty>(pluginProperties);
+        // E - Charitable Organization
+        exemptProperties.add(new PluginProperty(AvaTaxTaxCalculator.CUSTOMER_USAGE_TYPE, "E", false));
+
+        final Invoice invoice = TestUtils.buildInvoice(account);
+        final InvoiceItem taxableItem1 = TestUtils.buildInvoiceItem(invoice, InvoiceItemType.EXTERNAL_CHARGE, new BigDecimal("100"), null);
+        final InvoiceItem taxableItem2 = TestUtils.buildInvoiceItem(invoice, InvoiceItemType.RECURRING, BigDecimal.TEN, null);
+        final Map<UUID, InvoiceItem> taxableItems1 = ImmutableMap.<UUID, InvoiceItem>of(taxableItem1.getId(), taxableItem1,
+                                                                                        taxableItem2.getId(), taxableItem2);
+
+        // Compute the tax items
+        final List<InvoiceItem> initialTaxItems = calculator.compute(account, newInvoice, invoice, taxableItems1, ImmutableMap.<UUID, Collection<InvoiceItem>>of(), exemptProperties, tenantId);
+        Assert.assertEquals(dao.getSuccessfulResponses(invoice.getId(), tenantId).size(), 1);
+
+        // Check the created items
+        checkCreatedItems(ImmutableMap.<UUID, InvoiceItemType>of(), initialTaxItems);
+    }
+
+    @Test(groups = "slow")
     public void testWithTaxRatesTaxCalculator() throws Exception {
         final TaxRatesConfigurationHandler taxRatesConfigurationHandler = new TaxRatesConfigurationHandler(AvaTaxActivator.PLUGIN_NAME, osgiKillbillAPI, osgiKillbillLogService);
         taxRatesConfigurationHandler.setDefaultConfigurable(taxRatesClient);

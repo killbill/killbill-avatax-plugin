@@ -55,8 +55,11 @@ public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
     private final Collection<PluginProperty> pluginProperties = new LinkedList<PluginProperty>();
     private final UUID tenantId = UUID.randomUUID();
 
+    // Avalara requires to test at least two unique addresses for certification
     private Account account;
+    private Account account2;
     private Invoice newInvoice;
+    private Invoice newInvoice2;
     private AvaTaxDao dao;
     private OSGIKillbillAPI osgiKillbillAPI;
     private OSGIKillbillLogService osgiKillbillLogService;
@@ -67,7 +70,11 @@ public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
         pluginProperties.add(new PluginProperty(TaxRatesTaxCalculator.RATE_TYPE, "State", false));
 
         account = TestUtils.buildAccount(Currency.USD, "45 Fremont Street", null, "San Francisco", "CA", "94105", "US");
+        account2 = TestUtils.buildAccount(Currency.USD, "118 N Clark St Ste 100", null, "San Francisco", "CA", "94105", "US");
+
         newInvoice = TestUtils.buildInvoice(account);
+        newInvoice2 = TestUtils.buildInvoice(account2);
+
         dao = new AvaTaxDao(embeddedDB.getDataSource());
 
         final Payment payment = TestUtils.buildPayment(account.getId(), account.getPaymentMethodId(), account.getCurrency());
@@ -104,7 +111,7 @@ public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
         Assert.assertEquals(dao.getSuccessfulResponses(invoice.getId(), tenantId).size(), 1);
 
         // Check the created items
-        checkCreatedItems(ImmutableMap.<UUID, InvoiceItemType>of(), initialTaxItems);
+        checkCreatedItems(ImmutableMap.<UUID, InvoiceItemType>of(), initialTaxItems, newInvoice);
     }
 
     @Test(groups = "slow")
@@ -117,6 +124,11 @@ public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
 
     // The test is quite long due to the state that needs to be created in AvaTax
     private void testComputeItemsOverTime(final PluginTaxCalculator calculator) throws Exception {
+        testComputeItemsOverTime(calculator, account, newInvoice);
+        testComputeItemsOverTime(calculator, account2, newInvoice2);
+    }
+
+    private void testComputeItemsOverTime(final PluginTaxCalculator calculator, final Account account, final Invoice newInvoice) throws Exception {
         final Invoice invoice = TestUtils.buildInvoice(account);
         final InvoiceItem taxableItem1 = TestUtils.buildInvoiceItem(invoice, InvoiceItemType.EXTERNAL_CHARGE, new BigDecimal("100"), null);
         final InvoiceItem taxableItem2 = TestUtils.buildInvoiceItem(invoice, InvoiceItemType.RECURRING, BigDecimal.TEN, null);
@@ -133,7 +145,7 @@ public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
 
         // Check the created items
         checkCreatedItems(ImmutableMap.<UUID, InvoiceItemType>of(taxableItem1.getId(), InvoiceItemType.TAX,
-                                                                 taxableItem2.getId(), InvoiceItemType.TAX), initialTaxItems);
+                                                                 taxableItem2.getId(), InvoiceItemType.TAX), initialTaxItems, newInvoice);
 
         // Verify idempotency
         Assert.assertEquals(calculator.compute(account, newInvoice, invoice, taxableItems1, initialAdjustmentItems, pluginProperties, tenantId).size(), 0);
@@ -146,7 +158,7 @@ public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
         Assert.assertEquals(dao.getSuccessfulResponses(invoice.getId(), tenantId).size(), 2);
 
         // Check the created item
-        checkCreatedItems(ImmutableMap.<UUID, InvoiceItemType>of(taxableItem1.getId(), InvoiceItemType.TAX), adjustments1);
+        checkCreatedItems(ImmutableMap.<UUID, InvoiceItemType>of(taxableItem1.getId(), InvoiceItemType.TAX), adjustments1, newInvoice);
 
         // Verify idempotency
         Assert.assertEquals(calculator.compute(account, newInvoice, invoice, taxableItems1, subsequentAdjustmentItems1, pluginProperties, tenantId).size(), 0);
@@ -168,14 +180,14 @@ public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
         // Check the created items
         checkCreatedItems(ImmutableMap.<UUID, InvoiceItemType>of(taxableItem1.getId(), InvoiceItemType.TAX,
                                                                  taxableItem2.getId(), InvoiceItemType.TAX,
-                                                                 taxableItem3.getId(), InvoiceItemType.TAX), adjustments2);
+                                                                 taxableItem3.getId(), InvoiceItemType.TAX), adjustments2, newInvoice);
 
         // Verify idempotency
         Assert.assertEquals(calculator.compute(account, newInvoice, invoice, taxableItems2, subsequentAdjustmentItems2, pluginProperties, tenantId).size(), 0);
         Assert.assertEquals(dao.getSuccessfulResponses(invoice.getId(), tenantId).size(), 4);
     }
 
-    private void checkCreatedItems(final Map<UUID, InvoiceItemType> expectedInvoiceItemTypes, final Collection<InvoiceItem> createdItems) {
+    private void checkCreatedItems(final Map<UUID, InvoiceItemType> expectedInvoiceItemTypes, final Collection<InvoiceItem> createdItems, final Invoice newInvoice) {
         // Times 2 here because there are two tax items generated each time, one for the state (California) and one for the county (San Francisco)
         Assert.assertEquals(createdItems.size(), expectedInvoiceItemTypes.size() * 2);
         for (final InvoiceItem invoiceItem : createdItems) {

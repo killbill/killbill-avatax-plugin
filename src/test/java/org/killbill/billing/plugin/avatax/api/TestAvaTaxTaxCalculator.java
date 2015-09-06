@@ -42,6 +42,7 @@ import org.killbill.clock.Clock;
 import org.killbill.clock.DefaultClock;
 import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillAPI;
 import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillLogService;
+import org.mockito.Mockito;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -130,8 +131,11 @@ public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
 
     private void testComputeItemsOverTime(final PluginTaxCalculator calculator, final Account account, final Invoice newInvoice) throws Exception {
         final Invoice invoice = TestUtils.buildInvoice(account);
+        // Avalara requires testing multiple descriptions for certification
         final InvoiceItem taxableItem1 = TestUtils.buildInvoiceItem(invoice, InvoiceItemType.EXTERNAL_CHARGE, new BigDecimal("100"), null);
+        Mockito.when(taxableItem1.getDescription()).thenReturn(UUID.randomUUID().toString());
         final InvoiceItem taxableItem2 = TestUtils.buildInvoiceItem(invoice, InvoiceItemType.RECURRING, BigDecimal.TEN, null);
+        Mockito.when(taxableItem2.getDescription()).thenReturn(UUID.randomUUID().toString());
         final Map<UUID, InvoiceItem> taxableItems1 = ImmutableMap.<UUID, InvoiceItem>of(taxableItem1.getId(), taxableItem1,
                                                                                         taxableItem2.getId(), taxableItem2);
         final ImmutableMap<UUID, Collection<InvoiceItem>> initialAdjustmentItems = ImmutableMap.<UUID, Collection<InvoiceItem>>of();

@@ -19,7 +19,9 @@ package org.killbill.billing.plugin.avatax.api;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.UUID;
 
 import org.killbill.billing.ObjectType;
 import org.killbill.billing.invoice.api.Invoice;
@@ -60,6 +62,7 @@ public class AvaTaxInvoicePluginApi extends PluginInvoicePluginApi {
         final Collection<PluginProperty> pluginProperties = new ArrayList<PluginProperty>(ImmutableList.<PluginProperty>copyOf(properties));
 
         checkForTaxExemption(invoice, pluginProperties, context);
+        checkForTaxCodes(invoice, pluginProperties, context);
 
         return getAdditionalTaxInvoiceItems(calculator, invoice, pluginProperties, context);
     }
@@ -81,6 +84,34 @@ public class AvaTaxInvoicePluginApi extends PluginInvoicePluginApi {
 
         if (customField != null) {
             properties.add(new PluginProperty(AvaTaxTaxCalculator.CUSTOMER_USAGE_TYPE, customField.getFieldValue(), false));
+        }
+    }
+
+    private void checkForTaxCodes(final Invoice invoice, final Collection<PluginProperty> properties, final TenantContext context) {
+        final Collection<UUID> invoiceItemIds = new HashSet<UUID>();
+        final List<CustomField> customFields = killbillAPI.getCustomFieldUserApi().getCustomFieldsForAccountType(invoice.getAccountId(), ObjectType.INVOICE_ITEM, context);
+        if (customFields.isEmpty()) {
+            return;
+        }
+
+        for (final InvoiceItem invoiceItem : invoice.getInvoiceItems()) {
+            invoiceItemIds.add(invoiceItem.getId());
+        }
+
+        final Iterable<CustomField> taxCodeCustomFieldsForInvoiceItems = Iterables.<CustomField>filter(customFields,
+                                                                                                       new Predicate<CustomField>() {
+                                                                                                           @Override
+                                                                                                           public boolean apply(final CustomField customField) {
+                                                                                                               return AvaTaxTaxCalculator.TAX_CODE.equals(customField.getFieldName()) &&
+                                                                                                                      invoiceItemIds.contains(customField.getObjectId());
+                                                                                                           }
+                                                                                                       });
+        for (final CustomField customField : taxCodeCustomFieldsForInvoiceItems) {
+            final String pluginPropertyName = String.format("%s_%s", AvaTaxTaxCalculator.TAX_CODE, customField.getId());
+            // Overridden by plugin properties?
+            if (PluginProperties.findPluginPropertyValue(pluginPropertyName, properties) == null) {
+                properties.add(new PluginProperty(pluginPropertyName, customField.getFieldValue(), false));
+            }
         }
     }
 }

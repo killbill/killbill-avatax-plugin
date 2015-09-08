@@ -60,6 +60,7 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
 
     public static final String PROPERTY_COMPANY_CODE = "companyCode";
     public static final String CUSTOMER_USAGE_TYPE = "customerUsageType";
+    public static final String TAX_CODE = "taxCode";
 
     private static final Logger logger = LoggerFactory.getLogger(AvaTaxTaxCalculator.class);
 
@@ -202,7 +203,7 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
         int i = 0;
         while (taxableItemsIterator.hasNext()) {
             final InvoiceItem taxableItem = taxableItemsIterator.next();
-            taxRequest.Lines[i] = toLine(invoice, taxableItem, adjustmentItems == null ? null : adjustmentItems.get(taxableItem.getId()), taxRequest.Addresses[0].AddressCode);
+            taxRequest.Lines[i] = toLine(invoice, taxableItem, adjustmentItems == null ? null : adjustmentItems.get(taxableItem.getId()), taxRequest.Addresses[0].AddressCode, pluginProperties);
             i++;
         }
 
@@ -241,7 +242,7 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
      * @param locationCode    associated location from the Addresses field
      * @return Line object
      */
-    private Line toLine(final Invoice invoice, final InvoiceItem taxableItem, @Nullable final Iterable<InvoiceItem> adjustmentItems, final String locationCode) {
+    private Line toLine(final Invoice invoice, final InvoiceItem taxableItem, @Nullable final Iterable<InvoiceItem> adjustmentItems, final String locationCode, final Iterable<PluginProperty> pluginProperties) {
         final Line line = new Line();
         line.LineNo = taxableItem.getId().toString();
         line.DestinationCode = locationCode;
@@ -282,8 +283,9 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
             line.TaxOverride.TaxDate = invoice.getInvoiceDate().toString();
         }
 
+        line.TaxCode = PluginProperties.findPluginPropertyValue(String.format("%s_%s", TAX_CODE, taxableItem.getId()), pluginProperties);
+
         // Nice-to-have (via plugin properties or tags?)
-        line.TaxCode = null;
         line.CustomerUsageType = null;
         line.Discounted = false;
         line.TaxIncluded = false;

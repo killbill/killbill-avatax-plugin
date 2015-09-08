@@ -131,11 +131,13 @@ public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
 
     private void testComputeItemsOverTime(final PluginTaxCalculator calculator, final Account account, final Invoice newInvoice) throws Exception {
         final Invoice invoice = TestUtils.buildInvoice(account);
-        // Avalara requires testing multiple descriptions for certification
+        // Avalara requires testing multiple descriptions and multiple tax codes for certification
         final InvoiceItem taxableItem1 = TestUtils.buildInvoiceItem(invoice, InvoiceItemType.EXTERNAL_CHARGE, new BigDecimal("100"), null);
         Mockito.when(taxableItem1.getDescription()).thenReturn(UUID.randomUUID().toString());
+        pluginProperties.add(new PluginProperty(String.format("%s_%s", AvaTaxTaxCalculator.TAX_CODE, taxableItem1.getId()), "PC030100", false));
         final InvoiceItem taxableItem2 = TestUtils.buildInvoiceItem(invoice, InvoiceItemType.RECURRING, BigDecimal.TEN, null);
         Mockito.when(taxableItem2.getDescription()).thenReturn(UUID.randomUUID().toString());
+        pluginProperties.add(new PluginProperty(String.format("%s_%s", AvaTaxTaxCalculator.TAX_CODE, taxableItem2.getId()), "PC040100", false));
         final Map<UUID, InvoiceItem> taxableItems1 = ImmutableMap.<UUID, InvoiceItem>of(taxableItem1.getId(), taxableItem1,
                                                                                         taxableItem2.getId(), taxableItem2);
         final ImmutableMap<UUID, Collection<InvoiceItem>> initialAdjustmentItems = ImmutableMap.<UUID, Collection<InvoiceItem>>of();

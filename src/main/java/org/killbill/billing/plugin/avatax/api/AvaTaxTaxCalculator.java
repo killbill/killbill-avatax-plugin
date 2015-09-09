@@ -172,7 +172,8 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
         final GetTaxRequest taxRequest = new GetTaxRequest();
 
         // The DocCode needs to be unique to be able to support multiple returns for the same invoice
-        taxRequest.DocCode = UUID.randomUUID().toString();
+        // Note: for certification, the invoice number needs to be part of the DocCode
+        taxRequest.DocCode = String.format("INV%s-%s", invoice.getInvoiceNumber(), UUID.randomUUID().toString());
         // For returns, refers to the DocCode of the original invoice
         taxRequest.ReferenceCode = originalInvoiceReferenceCode;
         // AvaTax makes no direct association to the original invoice. We overload this field to keep a mapping with the original invoice.

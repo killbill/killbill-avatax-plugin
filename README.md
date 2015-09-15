@@ -1,7 +1,7 @@
 AvaTax plugin
 =============
 
-Kill Bill tax plugin for [Avalara AvaTax](http://www.avalara.com/products/avatax/).
+Kill Bill tax plugin for [Avalara AvaTax](http://www.avalara.com/products/avatax/) and [Avalara Tax Rates API](http://taxratesapi.avalara.com/).
 
 Release builds are available on [Maven Central](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.kill-bill.billing.plugin.java%22%20AND%20a%3A%22avatax-plugin%22) with coordinates `org.kill-bill.billing.plugin.java:avatax-plugin`.
 
@@ -10,7 +10,7 @@ Kill Bill compatibility
 
 | Plugin version | Kill Bill version |
 | -------------: | ----------------: |
-| 0.x.y          | 0.14.z            |
+| 0.1.y          | 0.14.z            |
 
 Requirements
 ------------
@@ -33,8 +33,6 @@ The following properties are optional:
 * `org.killbill.billing.plugin.avatax.companyCode`: your default company code (can be passed using the plugin property `companyCode`)
 
 ### Tax Rates API
-
-This plugin also supports the free [Avalara Tax Rates API](http://taxratesapi.avalara.com/).
 
 The following properties are required:
 
@@ -66,3 +64,19 @@ org.killbill.billing.plugin.avatax.accountNumber=YYY
 org.killbill.billing.plugin.avatax.licenseKey=ZZZ' \
      http://127.0.0.1:8080/1.0/kb/tenants/uploadPluginConfig/killbill-avatax
 ```
+
+AvaTax tax calculation details
+------------------------------
+
+### Marking an account as tax exempt
+
+Set the `customerUsageType` custom field on the account object (e.g. `E` for charitable or benevolent organizations).
+
+See [Handling tax exempt customers](http://developer.avalara.com/api-docs/designing-your-integration/handling-tax-exempt-customers) for more details.
+
+
+### Setting tax codes
+
+Set the `taxCode` custom field on the invoice item object (e.g. `PC040100` for general clothing products).
+
+See [What Is a Tax Code?](https://help.avalara.com/000_AvaTax_Calc/000AvaTaxCalc_User_Guide/040_Managing_Tax_Profiles/050_Tax_Codes/001_What_is_a_Tax_Code) for more details.

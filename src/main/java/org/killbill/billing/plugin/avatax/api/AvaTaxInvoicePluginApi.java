@@ -17,13 +17,19 @@
 
 package org.killbill.billing.plugin.avatax.api;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.killbill.billing.ObjectType;
+import org.killbill.billing.catalog.api.CatalogApiException;
+import org.killbill.billing.catalog.api.Plan;
+import org.killbill.billing.catalog.api.StaticCatalog;
 import org.killbill.billing.invoice.api.Invoice;
 import org.killbill.billing.invoice.api.InvoiceItem;
 import org.killbill.billing.payment.api.PluginProperty;
@@ -45,6 +51,7 @@ import com.google.common.collect.Iterables;
 
 public class AvaTaxInvoicePluginApi extends PluginInvoicePluginApi {
 
+    private final AvaTaxDao dao;
     private final AvaTaxTaxCalculator calculator;
 
     public AvaTaxInvoicePluginApi(final AvaTaxConfigurationHandler avaTaxConfigurationHandler,
@@ -54,6 +61,7 @@ public class AvaTaxInvoicePluginApi extends PluginInvoicePluginApi {
                                   final OSGIKillbillLogService logService,
                                   final Clock clock) {
         super(killbillApi, configProperties, logService, clock);
+        this.dao = dao;
         this.calculator = new AvaTaxTaxCalculator(avaTaxConfigurationHandler, dao, clock);
     }
 
@@ -88,6 +96,11 @@ public class AvaTaxInvoicePluginApi extends PluginInvoicePluginApi {
     }
 
     private void checkForTaxCodes(final Invoice invoice, final Collection<PluginProperty> properties, final TenantContext context) {
+        checkForTaxCodesInCustomFields(invoice, properties, context);
+        checkForTaxCodesOnProducts(invoice, properties, context);
+    }
+
+    private void checkForTaxCodesInCustomFields(final Invoice invoice, final Collection<PluginProperty> properties, final TenantContext context) {
         final Collection<UUID> invoiceItemIds = new HashSet<UUID>();
         final List<CustomField> customFields = killbillAPI.getCustomFieldUserApi().getCustomFieldsForAccountType(invoice.getAccountId(), ObjectType.INVOICE_ITEM, context);
         if (customFields.isEmpty()) {
@@ -107,11 +120,57 @@ public class AvaTaxInvoicePluginApi extends PluginInvoicePluginApi {
                                                                                                            }
                                                                                                        });
         for (final CustomField customField : taxCodeCustomFieldsForInvoiceItems) {
-            final String pluginPropertyName = String.format("%s_%s", AvaTaxTaxCalculator.TAX_CODE, customField.getId());
-            // Overridden by plugin properties?
-            if (PluginProperties.findPluginPropertyValue(pluginPropertyName, properties) == null) {
-                properties.add(new PluginProperty(pluginPropertyName, customField.getFieldValue(), false));
+            final UUID invoiceItemId = customField.getObjectId();
+            final String taxCode = customField.getFieldValue();
+            addTaxCodeToInvoiceItem(invoiceItemId, taxCode, properties);
+        }
+    }
+
+    private void checkForTaxCodesOnProducts(final Invoice invoice, final Collection<PluginProperty> properties, final TenantContext context) {
+        final Map<String, String> planToProductCache = new HashMap<String, String>();
+        final Map<String, String> productToTaxCodeCache = new HashMap<String, String>();
+
+        for (final InvoiceItem invoiceItem : invoice.getInvoiceItems()) {
+            final String planName = invoiceItem.getPlanName();
+            if (planName == null) {
+                continue;
             }
+
+            if (planToProductCache.get(planName) == null) {
+                try {
+                    final StaticCatalog catalog = killbillAPI.getCatalogUserApi().getCurrentCatalog(null, context);
+                    final Plan plan = catalog.findCurrentPlan(planName);
+                    planToProductCache.put(planName, plan.getProduct().getName());
+                } catch (final CatalogApiException e) {
+                    continue;
+                }
+            }
+            final String productName = planToProductCache.get(planName);
+            if (productName == null) {
+                continue;
+            }
+
+            if (productToTaxCodeCache.get(productName) == null) {
+                try {
+                    final String taxCode = dao.getTaxCode(productName, context.getTenantId());
+                    productToTaxCodeCache.put(productName, taxCode);
+                } catch (final SQLException e) {
+                    continue;
+                }
+            }
+
+            final String taxCode = productToTaxCodeCache.get(productName);
+            if (taxCode != null) {
+                addTaxCodeToInvoiceItem(invoiceItem.getId(), productToTaxCodeCache.get(productName), properties);
+            }
+        }
+    }
+
+    private void addTaxCodeToInvoiceItem(final UUID invoiceItemId, final String taxCode, final Collection<PluginProperty> properties) {
+        final String pluginPropertyName = String.format("%s_%s", AvaTaxTaxCalculator.TAX_CODE, invoiceItemId);
+        // Already in plugin properties?
+        if (PluginProperties.findPluginPropertyValue(pluginPropertyName, properties) == null) {
+            properties.add(new PluginProperty(pluginPropertyName, taxCode, false));
         }
     }
 }

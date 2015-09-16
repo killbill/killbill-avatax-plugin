@@ -22,12 +22,14 @@ public class Keys {
 	// -------------------------------------------------------------------------
 
 	public static final org.jooq.Identity<org.killbill.billing.plugin.avatax.dao.gen.tables.records.AvataxResponsesRecord, org.jooq.types.UInteger> IDENTITY_AVATAX_RESPONSES = Identities0.IDENTITY_AVATAX_RESPONSES;
+	public static final org.jooq.Identity<org.killbill.billing.plugin.avatax.dao.gen.tables.records.AvataxTaxCodesRecord, org.jooq.types.UInteger> IDENTITY_AVATAX_TAX_CODES = Identities0.IDENTITY_AVATAX_TAX_CODES;
 
 	// -------------------------------------------------------------------------
 	// UNIQUE and PRIMARY KEY definitions
 	// -------------------------------------------------------------------------
 
 	public static final org.jooq.UniqueKey<org.killbill.billing.plugin.avatax.dao.gen.tables.records.AvataxResponsesRecord> KEY_AVATAX_RESPONSES_PRIMARY = UniqueKeys0.KEY_AVATAX_RESPONSES_PRIMARY;
+	public static final org.jooq.UniqueKey<org.killbill.billing.plugin.avatax.dao.gen.tables.records.AvataxTaxCodesRecord> KEY_AVATAX_TAX_CODES_PRIMARY = UniqueKeys0.KEY_AVATAX_TAX_CODES_PRIMARY;
 
 	// -------------------------------------------------------------------------
 	// FOREIGN KEY definitions
@@ -40,9 +42,11 @@ public class Keys {
 
 	private static class Identities0 extends org.jooq.impl.AbstractKeys {
 		public static org.jooq.Identity<org.killbill.billing.plugin.avatax.dao.gen.tables.records.AvataxResponsesRecord, org.jooq.types.UInteger> IDENTITY_AVATAX_RESPONSES = createIdentity(org.killbill.billing.plugin.avatax.dao.gen.tables.AvataxResponses.AVATAX_RESPONSES, org.killbill.billing.plugin.avatax.dao.gen.tables.AvataxResponses.AVATAX_RESPONSES.RECORD_ID);
+		public static org.jooq.Identity<org.killbill.billing.plugin.avatax.dao.gen.tables.records.AvataxTaxCodesRecord, org.jooq.types.UInteger> IDENTITY_AVATAX_TAX_CODES = createIdentity(org.killbill.billing.plugin.avatax.dao.gen.tables.AvataxTaxCodes.AVATAX_TAX_CODES, org.killbill.billing.plugin.avatax.dao.gen.tables.AvataxTaxCodes.AVATAX_TAX_CODES.RECORD_ID);
 	}
 
 	private static class UniqueKeys0 extends org.jooq.impl.AbstractKeys {
 		public static final org.jooq.UniqueKey<org.killbill.billing.plugin.avatax.dao.gen.tables.records.AvataxResponsesRecord> KEY_AVATAX_RESPONSES_PRIMARY = createUniqueKey(org.killbill.billing.plugin.avatax.dao.gen.tables.AvataxResponses.AVATAX_RESPONSES, org.killbill.billing.plugin.avatax.dao.gen.tables.AvataxResponses.AVATAX_RESPONSES.RECORD_ID);
+		public static final org.jooq.UniqueKey<org.killbill.billing.plugin.avatax.dao.gen.tables.records.AvataxTaxCodesRecord> KEY_AVATAX_TAX_CODES_PRIMARY = createUniqueKey(org.killbill.billing.plugin.avatax.dao.gen.tables.AvataxTaxCodes.AVATAX_TAX_CODES, org.killbill.billing.plugin.avatax.dao.gen.tables.AvataxTaxCodes.AVATAX_TAX_CODES.RECORD_ID);
 	}
 }

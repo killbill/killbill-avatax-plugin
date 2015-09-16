@@ -16,7 +16,7 @@ package org.killbill.billing.plugin.avatax.dao.gen.tables;
 @java.lang.SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class AvataxResponses extends org.jooq.impl.TableImpl<org.killbill.billing.plugin.avatax.dao.gen.tables.records.AvataxResponsesRecord> {
 
-	private static final long serialVersionUID = 492541724;
+	private static final long serialVersionUID = 67301181;
 
 	/**
 	 * The reference instance of <code>killbill.avatax_responses</code>
@@ -49,7 +49,7 @@ public class AvataxResponses extends org.jooq.impl.TableImpl<org.killbill.billin
 	/**
 	 * The column <code>killbill.avatax_responses.kb_invoice_item_ids</code>.
 	 */
-	public final org.jooq.TableField<org.killbill.billing.plugin.avatax.dao.gen.tables.records.AvataxResponsesRecord, java.lang.String> KB_INVOICE_ITEM_IDS = createField("kb_invoice_item_ids", org.jooq.impl.SQLDataType.CLOB.nullable(false), this, "");
+	public final org.jooq.TableField<org.killbill.billing.plugin.avatax.dao.gen.tables.records.AvataxResponsesRecord, java.lang.String> KB_INVOICE_ITEM_IDS = createField("kb_invoice_item_ids", org.jooq.impl.SQLDataType.CLOB, this, "");
 
 	/**
 	 * The column <code>killbill.avatax_responses.doc_code</code>.

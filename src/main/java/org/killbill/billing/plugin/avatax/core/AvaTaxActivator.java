@@ -19,6 +19,9 @@ package org.killbill.billing.plugin.avatax.core;
 
 import java.util.Hashtable;
 
+import javax.servlet.Servlet;
+import javax.servlet.http.HttpServlet;
+
 import org.killbill.billing.invoice.plugin.api.InvoicePluginApi;
 import org.killbill.billing.osgi.api.OSGIPluginProperties;
 import org.killbill.billing.plugin.api.notification.PluginConfigurationEventHandler;
@@ -65,6 +68,9 @@ public class AvaTaxActivator extends KillbillActivatorBase {
                                                                               logService,
                                                                               clock);
         registerInvoicePluginApi(context, invoicePluginApi);
+
+        final HttpServlet servlet = new AvaTaxServlet(dao, clock);
+        registerServlet(context, servlet);
     }
 
     @Override
@@ -78,5 +84,11 @@ public class AvaTaxActivator extends KillbillActivatorBase {
         final Hashtable<String, String> props = new Hashtable<String, String>();
         props.put(OSGIPluginProperties.PLUGIN_NAME_PROP, PLUGIN_NAME);
         registrar.registerService(context, InvoicePluginApi.class, api, props);
+    }
+
+    private void registerServlet(final BundleContext context, final HttpServlet servlet) {
+        final Hashtable<String, String> props = new Hashtable<String, String>();
+        props.put(OSGIPluginProperties.PLUGIN_NAME_PROP, PLUGIN_NAME);
+        registrar.registerService(context, Servlet.class, servlet, props);
     }
 }

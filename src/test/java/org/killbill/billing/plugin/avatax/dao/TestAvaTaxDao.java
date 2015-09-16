@@ -52,6 +52,22 @@ public class TestAvaTaxDao extends TestWithEmbeddedDBBase {
     }
 
     @Test(groups = "slow")
+    public void testCreateReadTaxCodes() throws Exception {
+        final UUID kbTenantId = UUID.randomUUID();
+
+        final String productName = UUID.randomUUID().toString();
+        final String taxCode = UUID.randomUUID().toString();
+        dao.addTaxCode(productName,
+                       taxCode,
+                       new DateTime(DateTimeZone.UTC),
+                       kbTenantId);
+
+        Assert.assertNull(dao.getTaxCode(UUID.randomUUID().toString(), kbTenantId));
+        Assert.assertNull(dao.getTaxCode(productName, UUID.randomUUID()));
+        Assert.assertEquals(dao.getTaxCode(productName, kbTenantId), taxCode);
+    }
+
+    @Test(groups = "slow")
     public void testCreateReadResponses() throws Exception {
         final Account account = TestUtils.buildAccount(Currency.USD, "US");
         final Invoice invoice = TestUtils.buildInvoice(account);

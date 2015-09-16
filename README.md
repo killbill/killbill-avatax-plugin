@@ -77,6 +77,21 @@ See [Handling tax exempt customers](http://developer.avalara.com/api-docs/design
 
 ### Setting tax codes
 
-Set the `taxCode` custom field on the invoice item object (e.g. `PC040100` for general clothing products).
+There are several ways to configure tax codes:
+
+* For external charges, set the `taxCode` custom field on the invoice item object (e.g. `PC040100` for general clothing products)
+* For subscriptions, you can store the tax code for each product in your catalog as follows:
+
+```
+curl -v \
+     -X POST \
+     -u admin:password \
+     -H 'X-Killbill-ApiKey: bob' \
+     -H 'X-Killbill-ApiSecret: lazar' \
+     -H 'X-Killbill-CreatedBy: admin' \
+     -H 'Content-Type: application/json' \
+     -d '{"productName":"Super","taxCode":"DC010200"}' \
+     http://127.0.0.1:8080/plugins/killbill-avatax/taxCodes
+```
 
 See [What Is a Tax Code?](https://help.avalara.com/000_AvaTax_Calc/000AvaTaxCalc_User_Guide/040_Managing_Tax_Profiles/050_Tax_Codes/001_What_is_a_Tax_Code) for more details.

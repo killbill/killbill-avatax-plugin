@@ -20,4 +20,9 @@ public class Tables {
 	 * The table killbill.avatax_responses
 	 */
 	public static final org.killbill.billing.plugin.avatax.dao.gen.tables.AvataxResponses AVATAX_RESPONSES = org.killbill.billing.plugin.avatax.dao.gen.tables.AvataxResponses.AVATAX_RESPONSES;
+
+	/**
+	 * The table killbill.avatax_tax_codes
+	 */
+	public static final org.killbill.billing.plugin.avatax.dao.gen.tables.AvataxTaxCodes AVATAX_TAX_CODES = org.killbill.billing.plugin.avatax.dao.gen.tables.AvataxTaxCodes.AVATAX_TAX_CODES;
 }

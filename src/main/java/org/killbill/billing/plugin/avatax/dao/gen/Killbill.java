@@ -16,7 +16,7 @@ package org.killbill.billing.plugin.avatax.dao.gen;
 @java.lang.SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class Killbill extends org.jooq.impl.SchemaImpl {
 
-	private static final long serialVersionUID = 754870340;
+	private static final long serialVersionUID = -1289370954;
 
 	/**
 	 * The reference instance of <code>killbill</code>
@@ -39,6 +39,7 @@ public class Killbill extends org.jooq.impl.SchemaImpl {
 
 	private final java.util.List<org.jooq.Table<?>> getTables0() {
 		return java.util.Arrays.<org.jooq.Table<?>>asList(
-			org.killbill.billing.plugin.avatax.dao.gen.tables.AvataxResponses.AVATAX_RESPONSES);
+			org.killbill.billing.plugin.avatax.dao.gen.tables.AvataxResponses.AVATAX_RESPONSES,
+			org.killbill.billing.plugin.avatax.dao.gen.tables.AvataxTaxCodes.AVATAX_TAX_CODES);
 	}
 }

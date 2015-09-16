@@ -28,3 +28,15 @@ create table avatax_responses (
 ) /*! CHARACTER SET utf8 COLLATE utf8_bin */;
 create index avatax_responses_kb_account_id on avatax_responses(kb_account_id);
 create index avatax_responses_kb_invoice_id on avatax_responses(kb_invoice_id);
+
+drop table if exists avatax_tax_codes;
+create table avatax_tax_codes (
+  record_id int(11) unsigned not null auto_increment
+, product_name varchar(255) not null
+, tax_code varchar(255) not null
+, created_date datetime not null
+, kb_tenant_id char(36) not null
+, primary key(record_id)
+) /*! CHARACTER SET utf8 COLLATE utf8_bin */;
+create index avatax_tax_codes_product_name on avatax_tax_codes(product_name);
+create unique index avatax_tax_codes_product_name_tax_code on avatax_tax_codes(product_name, tax_code);

@@ -20,11 +20,11 @@
     <parent>
         <artifactId>killbill-oss-parent</artifactId>
         <groupId>org.kill-bill.billing</groupId>
-        <version>0.11</version>
+        <version>0.43</version>
     </parent>
     <groupId>org.kill-bill.billing.plugin.java</groupId>
     <artifactId>avatax-plugin</artifactId>
-    <version>0.1.1-SNAPSHOT</version>
+    <version>0.2.0-SNAPSHOT</version>
     <packaging>bundle</packaging>
     <name>Kill Bill OSGI AvaTax plugin</name>
     <description>Kill Bill AvaTax plugin</description>
@@ -172,7 +172,7 @@
                             org.killbill.billing.osgi.api.config;
                             org.killbill.billing.payment.api;
                             org.killbill.billing.payment.plugin.api;
-                            org.killbill.billing.routing.plugin.api;
+                            org.killbill.billing.control.plugin.api;
                             org.killbill.billing.tenant.api;
                             org.killbill.billing.usage.api;
                             org.killbill.billing.util.api;

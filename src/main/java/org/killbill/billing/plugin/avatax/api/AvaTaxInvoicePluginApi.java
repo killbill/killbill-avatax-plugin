@@ -66,13 +66,13 @@ public class AvaTaxInvoicePluginApi extends PluginInvoicePluginApi {
     }
 
     @Override
-    public List<InvoiceItem> getAdditionalInvoiceItems(final Invoice invoice, final Iterable<PluginProperty> properties, final CallContext context) {
+    public List<InvoiceItem> getAdditionalInvoiceItems(final Invoice invoice, final boolean dryRun, final Iterable<PluginProperty> properties, final CallContext context) {
         final Collection<PluginProperty> pluginProperties = new ArrayList<PluginProperty>(ImmutableList.<PluginProperty>copyOf(properties));
 
         checkForTaxExemption(invoice, pluginProperties, context);
         checkForTaxCodes(invoice, pluginProperties, context);
 
-        return getAdditionalTaxInvoiceItems(calculator, invoice, pluginProperties, context);
+        return getAdditionalTaxInvoiceItems(calculator, invoice, dryRun, pluginProperties, context);
     }
 
     private void checkForTaxExemption(final Invoice invoice, final Collection<PluginProperty> properties, final TenantContext context) {

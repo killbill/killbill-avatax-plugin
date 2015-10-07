@@ -108,7 +108,7 @@ public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
                                                                                         taxableItem2.getId(), taxableItem2);
 
         // Compute the tax items
-        final List<InvoiceItem> initialTaxItems = calculator.compute(account, newInvoice, invoice, taxableItems1, ImmutableMap.<UUID, Collection<InvoiceItem>>of(), exemptProperties, tenantId);
+        final List<InvoiceItem> initialTaxItems = calculator.compute(account, newInvoice, invoice, taxableItems1, ImmutableMap.<UUID, Collection<InvoiceItem>>of(), false, exemptProperties, tenantId);
         Assert.assertEquals(dao.getSuccessfulResponses(invoice.getId(), tenantId).size(), 1);
 
         // Check the created items
@@ -146,7 +146,7 @@ public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
         Assert.assertEquals(dao.getSuccessfulResponses(invoice.getId(), tenantId).size(), 0);
 
         // Compute the initial tax items
-        final List<InvoiceItem> initialTaxItems = calculator.compute(account, newInvoice, invoice, taxableItems1, initialAdjustmentItems, pluginProperties, tenantId);
+        final List<InvoiceItem> initialTaxItems = calculator.compute(account, newInvoice, invoice, taxableItems1, initialAdjustmentItems, false, pluginProperties, tenantId);
         Assert.assertEquals(dao.getSuccessfulResponses(invoice.getId(), tenantId).size(), 1);
 
         // Check the created items
@@ -154,20 +154,20 @@ public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
                                                                  taxableItem2.getId(), InvoiceItemType.TAX), initialTaxItems, newInvoice);
 
         // Verify idempotency
-        Assert.assertEquals(calculator.compute(account, newInvoice, invoice, taxableItems1, initialAdjustmentItems, pluginProperties, tenantId).size(), 0);
+        Assert.assertEquals(calculator.compute(account, newInvoice, invoice, taxableItems1, initialAdjustmentItems, false, pluginProperties, tenantId).size(), 0);
         Assert.assertEquals(dao.getSuccessfulResponses(invoice.getId(), tenantId).size(), 1);
 
         // Compute a subsequent adjustment
         final InvoiceItem adjustment1ForInvoiceItem1 = TestUtils.buildInvoiceItem(invoice, InvoiceItemType.ITEM_ADJ, BigDecimal.ONE.negate(), taxableItem1.getId());
         final ImmutableMap<UUID, Collection<InvoiceItem>> subsequentAdjustmentItems1 = ImmutableMap.<UUID, Collection<InvoiceItem>>of(taxableItem1.getId(), ImmutableList.<InvoiceItem>of(adjustment1ForInvoiceItem1));
-        final List<InvoiceItem> adjustments1 = calculator.compute(account, newInvoice, invoice, taxableItems1, subsequentAdjustmentItems1, pluginProperties, tenantId);
+        final List<InvoiceItem> adjustments1 = calculator.compute(account, newInvoice, invoice, taxableItems1, subsequentAdjustmentItems1, false, pluginProperties, tenantId);
         Assert.assertEquals(dao.getSuccessfulResponses(invoice.getId(), tenantId).size(), 2);
 
         // Check the created item
         checkCreatedItems(ImmutableMap.<UUID, InvoiceItemType>of(taxableItem1.getId(), InvoiceItemType.TAX), adjustments1, newInvoice);
 
         // Verify idempotency
-        Assert.assertEquals(calculator.compute(account, newInvoice, invoice, taxableItems1, subsequentAdjustmentItems1, pluginProperties, tenantId).size(), 0);
+        Assert.assertEquals(calculator.compute(account, newInvoice, invoice, taxableItems1, subsequentAdjustmentItems1, false, pluginProperties, tenantId).size(), 0);
         Assert.assertEquals(dao.getSuccessfulResponses(invoice.getId(), tenantId).size(), 2);
 
         // Compute a subsequent adjustment (with a new item on a new invoice this time, to simulate a repair)
@@ -180,7 +180,7 @@ public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
                                                                                         taxableItem3.getId(), taxableItem3);
         final ImmutableMap<UUID, Collection<InvoiceItem>> subsequentAdjustmentItems2 = ImmutableMap.<UUID, Collection<InvoiceItem>>of(taxableItem1.getId(), ImmutableList.<InvoiceItem>of(adjustment2ForInvoiceItem1),
                                                                                                                                       taxableItem2.getId(), ImmutableList.<InvoiceItem>of(adjustment1ForInvoiceItem2));
-        final List<InvoiceItem> adjustments2 = calculator.compute(account, newInvoice, invoice, taxableItems2, subsequentAdjustmentItems2, pluginProperties, tenantId);
+        final List<InvoiceItem> adjustments2 = calculator.compute(account, newInvoice, invoice, taxableItems2, subsequentAdjustmentItems2, false, pluginProperties, tenantId);
         Assert.assertEquals(dao.getSuccessfulResponses(invoice.getId(), tenantId).size(), 4);
 
         // Check the created items
@@ -189,7 +189,7 @@ public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
                                                                  taxableItem3.getId(), InvoiceItemType.TAX), adjustments2, newInvoice);
 
         // Verify idempotency
-        Assert.assertEquals(calculator.compute(account, newInvoice, invoice, taxableItems2, subsequentAdjustmentItems2, pluginProperties, tenantId).size(), 0);
+        Assert.assertEquals(calculator.compute(account, newInvoice, invoice, taxableItems2, subsequentAdjustmentItems2, false, pluginProperties, tenantId).size(), 0);
         Assert.assertEquals(dao.getSuccessfulResponses(invoice.getId(), tenantId).size(), 4);
     }
 

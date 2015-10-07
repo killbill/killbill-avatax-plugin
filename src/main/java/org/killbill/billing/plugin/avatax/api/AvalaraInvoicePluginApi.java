@@ -69,7 +69,7 @@ public class AvalaraInvoicePluginApi implements InvoicePluginApi {
     }
 
     @Override
-    public List<InvoiceItem> getAdditionalInvoiceItems(final Invoice invoice, final Iterable<PluginProperty> iterable, final CallContext callContext) {
+    public List<InvoiceItem> getAdditionalInvoiceItems(final Invoice invoice, final boolean dryRun, final Iterable<PluginProperty> properties, final CallContext callContext) {
         final UUID kbTenantId = callContext.getTenantId();
         final AvaTaxClient avaTaxClient = avaTaxConfigurationHandler.getConfigurable(kbTenantId);
         final TaxRatesClient taxRatesClient = taxRatesConfigurationHandler.getConfigurable(kbTenantId);
@@ -79,9 +79,9 @@ public class AvalaraInvoicePluginApi implements InvoicePluginApi {
         if (avaTaxClient.isConfigured()) {
             // If a per tenant taxRatesClient is configured and a global avaTaxClient, we would use the latter
             // Should this behavior be configurable?
-            return avaTaxInvoicePluginApi.getAdditionalInvoiceItems(invoice, iterable, callContext);
+            return avaTaxInvoicePluginApi.getAdditionalInvoiceItems(invoice, dryRun, properties, callContext);
         } else if (taxRatesClient.isConfigured()) {
-            return taxRatesInvoicePluginApi.getAdditionalInvoiceItems(invoice, iterable, callContext);
+            return taxRatesInvoicePluginApi.getAdditionalInvoiceItems(invoice, dryRun, properties, callContext);
         } else {
             // Not configured for that tenant?
             return ImmutableList.<InvoiceItem>of();

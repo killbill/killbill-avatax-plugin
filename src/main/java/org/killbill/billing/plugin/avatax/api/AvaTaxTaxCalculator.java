@@ -80,6 +80,7 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
                                                         final Map<UUID, InvoiceItem> taxableItems,
                                                         final Map<UUID, Collection<InvoiceItem>> adjustmentItems,
                                                         @Nullable final String originalInvoiceReferenceCode,
+                                                        final boolean dryRun,
                                                         final Iterable<PluginProperty> pluginProperties,
                                                         final UUID kbTenantId,
                                                         final Map<UUID, Iterable<InvoiceItem>> kbInvoiceItems,
@@ -87,7 +88,7 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
         final AvaTaxClient avaTaxClient = avaTaxConfigurationHandler.getConfigurable(kbTenantId);
         final String companyCode = avaTaxClient.getCompanyCode();
 
-        final GetTaxRequest taxRequest = toTaxRequest(companyCode, account, invoice, taxableItems.values(), adjustmentItems, originalInvoiceReferenceCode, pluginProperties, utcToday);
+        final GetTaxRequest taxRequest = toTaxRequest(companyCode, account, invoice, taxableItems.values(), adjustmentItems, originalInvoiceReferenceCode, dryRun, pluginProperties, utcToday);
         logger.info("GetTaxRequest: {}", taxRequest.simplifiedToString());
 
         final GetTaxResult taxResult = avaTaxClient.getTax(taxRequest);
@@ -151,6 +152,7 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
      * @param adjustmentItems              invoice item adjustments associated (empty for Sales document)
      * @param originalInvoiceReferenceCode the original AvaTax reference code  (null for Sales document)
      * @param pluginProperties             Kill Bill plugin properties
+     * @param dryRun                       true if the invoice won't be persisted
      * @param utcToday                     today's date
      * @return GetTaxRequest object
      */
@@ -160,6 +162,7 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
                                        final Collection<InvoiceItem> taxableItems,
                                        @Nullable final Map<UUID, Collection<InvoiceItem>> adjustmentItems,
                                        @Nullable final String originalInvoiceReferenceCode,
+                                       final boolean dryRun,
                                        final Iterable<PluginProperty> pluginProperties,
                                        final LocalDate utcToday) {
         Preconditions.checkState((originalInvoiceReferenceCode == null && (adjustmentItems == null || adjustmentItems.isEmpty())) ||
@@ -183,8 +186,7 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
         taxRequest.DocDate = utcToday.toDate();
         taxRequest.CurrencyCode = invoice.getCurrency().name();
 
-        // TODO Add support in KB
-        if (Boolean.valueOf(PluginProperties.findPluginPropertyValue(PROPERTY_DRY_RUN, pluginProperties))) {
+        if (dryRun) {
             // This is a temporary document type and is not saved in tax history
             taxRequest.DocType = originalInvoiceReferenceCode == null ? DocType.SalesOrder : DocType.ReturnOrder;
             taxRequest.Commit = false;

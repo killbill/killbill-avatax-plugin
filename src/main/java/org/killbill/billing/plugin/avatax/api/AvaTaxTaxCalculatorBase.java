@@ -62,6 +62,7 @@ public abstract class AvaTaxTaxCalculatorBase extends PluginTaxCalculator {
                                      final Invoice invoice,
                                      final Map<UUID, InvoiceItem> taxableItems,
                                      final Map<UUID, Collection<InvoiceItem>> adjustmentItems,
+                                     final boolean dryRun,
                                      final Iterable<PluginProperty> pluginProperties,
                                      final UUID kbTenantId) {
         // Retrieve what we've already taxed (Tax Rates API) or sent (AvaTax)
@@ -84,10 +85,10 @@ public abstract class AvaTaxTaxCalculatorBase extends PluginTaxCalculator {
 
         final ImmutableList.Builder<InvoiceItem> newInvoiceItemsBuilder = ImmutableList.<InvoiceItem>builder();
         if (!salesTaxItems.isEmpty()) {
-            newInvoiceItemsBuilder.addAll(getTax(account, newInvoice, invoice, salesTaxItems, null, null, pluginProperties, kbTenantId));
+            newInvoiceItemsBuilder.addAll(getTax(account, newInvoice, invoice, salesTaxItems, null, null, dryRun, pluginProperties, kbTenantId));
         }
         if (!returnTaxItems.isEmpty()) {
-            newInvoiceItemsBuilder.addAll(getTax(account, newInvoice, invoice, returnTaxItems, adjustmentItemsForReturnTaxItems, originalInvoiceReferenceCode, pluginProperties, kbTenantId));
+            newInvoiceItemsBuilder.addAll(getTax(account, newInvoice, invoice, returnTaxItems, adjustmentItemsForReturnTaxItems, originalInvoiceReferenceCode, dryRun, pluginProperties, kbTenantId));
         }
         return newInvoiceItemsBuilder.build();
     }
@@ -98,6 +99,7 @@ public abstract class AvaTaxTaxCalculatorBase extends PluginTaxCalculator {
                                          final Map<UUID, InvoiceItem> taxableItems,
                                          @Nullable final Map<UUID, Collection<InvoiceItem>> adjustmentItems,
                                          @Nullable final String originalInvoiceReferenceCode,
+                                         final boolean dryRun,
                                          final Iterable<PluginProperty> pluginProperties,
                                          final UUID kbTenantId) {
         // Keep track of the invoice items and adjustments we've already taxed (Tax Rates API) or sent (AvaTax)
@@ -114,7 +116,7 @@ public abstract class AvaTaxTaxCalculatorBase extends PluginTaxCalculator {
         final LocalDate taxItemsDate = newInvoice.getInvoiceDate();
 
         try {
-            return buildInvoiceItems(account, newInvoice, invoice, taxableItems, adjustmentItems, originalInvoiceReferenceCode, pluginProperties, kbTenantId, kbInvoiceItems, taxItemsDate);
+            return buildInvoiceItems(account, newInvoice, invoice, taxableItems, adjustmentItems, originalInvoiceReferenceCode, dryRun, pluginProperties, kbTenantId, kbInvoiceItems, taxItemsDate);
         } catch (final AvaTaxClientException e) {
             throw new RuntimeException(e);
         } catch (final SQLException e) {
@@ -128,6 +130,7 @@ public abstract class AvaTaxTaxCalculatorBase extends PluginTaxCalculator {
                                                                  final Map<UUID, InvoiceItem> taxableItems,
                                                                  @Nullable final Map<UUID, Collection<InvoiceItem>> adjustmentItems,
                                                                  @Nullable final String originalInvoiceReferenceCode,
+                                                                 final boolean dryRun,
                                                                  final Iterable<PluginProperty> pluginProperties,
                                                                  final UUID kbTenantId,
                                                                  final Map<UUID, Iterable<InvoiceItem>> kbInvoiceItems,

@@ -67,6 +67,7 @@ public class TaxRatesTaxCalculator extends AvaTaxTaxCalculatorBase {
                                                         final Map<UUID, InvoiceItem> taxableItems,
                                                         @Nullable final Map<UUID, Collection<InvoiceItem>> adjustmentItems,
                                                         @Nullable final String originalInvoiceReferenceCode,
+                                                        final boolean dryRun,
                                                         final Iterable<PluginProperty> pluginProperties,
                                                         final UUID kbTenantId,
                                                         final Map<UUID, Iterable<InvoiceItem>> kbInvoiceItems,

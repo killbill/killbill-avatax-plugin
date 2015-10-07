@@ -46,7 +46,7 @@ public class TaxRatesInvoicePluginApi extends PluginInvoicePluginApi {
     }
 
     @Override
-    public List<InvoiceItem> getAdditionalInvoiceItems(final Invoice invoice, final Iterable<PluginProperty> properties, final CallContext context) {
-        return getAdditionalTaxInvoiceItems(calculator, invoice, properties, context);
+    public List<InvoiceItem> getAdditionalInvoiceItems(final Invoice invoice, final boolean dryRun, final Iterable<PluginProperty> properties, final CallContext context) {
+        return getAdditionalTaxInvoiceItems(calculator, invoice, dryRun, properties, context);
     }
 }

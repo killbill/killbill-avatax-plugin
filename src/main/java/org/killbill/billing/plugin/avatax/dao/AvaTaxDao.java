@@ -32,6 +32,9 @@ import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
 import org.joda.time.DateTime;
+import org.jooq.Configuration;
+import org.jooq.DSLContext;
+import org.jooq.TransactionalRunnable;
 import org.jooq.impl.DSL;
 import org.killbill.billing.invoice.api.InvoiceItem;
 import org.killbill.billing.plugin.avatax.client.model.CommonResponse;
@@ -61,7 +64,7 @@ public class AvaTaxDao extends PluginDao {
         super(dataSource);
     }
 
-    public void addTaxCode(final String productName,
+    public void setTaxCode(final String productName,
                            final String taxCode,
                            final DateTime utcNow,
                            final UUID kbTenantId) throws SQLException {
@@ -70,19 +73,45 @@ public class AvaTaxDao extends PluginDao {
                     @Override
                     public Void withConnection(final Connection conn) throws SQLException {
                         DSL.using(conn, dialect, settings)
-                           .insertInto(AVATAX_TAX_CODES,
-                                       AVATAX_TAX_CODES.PRODUCT_NAME,
-                                       AVATAX_TAX_CODES.TAX_CODE,
-                                       AVATAX_TAX_CODES.CREATED_DATE,
-                                       AVATAX_TAX_CODES.KB_TENANT_ID)
-                           .values(productName,
-                                   taxCode,
-                                   toTimestamp(utcNow),
-                                   kbTenantId.toString())
-                           .execute();
+                           .transaction(new TransactionalRunnable() {
+                               @Override
+                               public void run(final Configuration configuration) throws Exception {
+                                   final DSLContext dslContext = DSL.using(configuration);
+
+                                   dslContext.delete(AVATAX_TAX_CODES)
+                                             .where(AVATAX_TAX_CODES.PRODUCT_NAME.equal(productName))
+                                             .and(AVATAX_TAX_CODES.KB_TENANT_ID.equal(kbTenantId.toString()))
+                                             .execute();
+
+                                   dslContext.insertInto(AVATAX_TAX_CODES,
+                                                         AVATAX_TAX_CODES.PRODUCT_NAME,
+                                                         AVATAX_TAX_CODES.TAX_CODE,
+                                                         AVATAX_TAX_CODES.CREATED_DATE,
+                                                         AVATAX_TAX_CODES.KB_TENANT_ID)
+                                             .values(productName,
+                                                     taxCode,
+                                                     toTimestamp(utcNow),
+                                                     kbTenantId.toString())
+                                             .execute();
+                               }
+                           });
                         return null;
                     }
                 });
+    }
+
+    public List<AvataxTaxCodesRecord> getTaxCodes(final UUID kbTenantId) throws SQLException {
+        return execute(dataSource.getConnection(),
+                       new WithConnectionCallback<List<AvataxTaxCodesRecord>>() {
+                           @Override
+                           public List<AvataxTaxCodesRecord> withConnection(final Connection conn) throws SQLException {
+                               return DSL.using(conn, dialect, settings)
+                                         .selectFrom(AVATAX_TAX_CODES)
+                                         .where(AVATAX_TAX_CODES.KB_TENANT_ID.equal(kbTenantId.toString()))
+                                         .orderBy(AVATAX_TAX_CODES.RECORD_ID.asc())
+                                         .fetch();
+                           }
+                       });
     }
 
     public String getTaxCode(final String productName,

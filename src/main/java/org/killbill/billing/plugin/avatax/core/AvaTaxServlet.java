@@ -19,6 +19,7 @@ package org.killbill.billing.plugin.avatax.core;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,6 +29,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.killbill.billing.plugin.avatax.dao.AvaTaxDao;
+import org.killbill.billing.plugin.avatax.dao.gen.tables.records.AvataxTaxCodesRecord;
 import org.killbill.billing.plugin.core.PluginServlet;
 import org.killbill.billing.tenant.api.Tenant;
 import org.killbill.clock.Clock;
@@ -35,6 +37,8 @@ import org.killbill.clock.Clock;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 public class AvaTaxServlet extends PluginServlet {
 
@@ -62,7 +66,11 @@ public class AvaTaxServlet extends PluginServlet {
         final Matcher matcher = TAX_CODES_PATTERN.matcher(pathInfo);
         if (matcher.matches()) {
             final String productName = matcher.group(2);
-            getTaxCode(productName, tenant, resp);
+            if (productName == null) {
+                getTaxCodes(tenant, resp);
+            } else {
+                getTaxCode(productName, tenant, resp);
+            }
         } else {
             buildNotFoundResponse("Resource " + pathInfo + " not found", resp);
         }
@@ -85,6 +93,26 @@ public class AvaTaxServlet extends PluginServlet {
         }
     }
 
+    private void getTaxCodes(final Tenant tenant, final HttpServletResponse resp) throws IOException {
+        final List<AvataxTaxCodesRecord> taxCodesRecords;
+        try {
+            taxCodesRecords = dao.getTaxCodes(tenant.getId());
+        } catch (final SQLException e) {
+            buildErrorResponse(e, resp);
+            return;
+        }
+
+        final byte[] data = jsonMapper.writeValueAsBytes(Lists.<AvataxTaxCodesRecord, TaxCodeJson>transform(taxCodesRecords,
+                                                                                                            new Function<AvataxTaxCodesRecord, TaxCodeJson>() {
+                                                                                                                @Override
+                                                                                                                public TaxCodeJson apply(final AvataxTaxCodesRecord record) {
+                                                                                                                    return new TaxCodeJson(record.getProductName(), record.getTaxCode());
+                                                                                                                }
+                                                                                                            }));
+
+        buildOKResponse(data, resp);
+    }
+
     private void getTaxCode(final String productName, final Tenant tenant, final HttpServletResponse resp) throws IOException {
         final String taxCode;
         try {
@@ -103,7 +131,7 @@ public class AvaTaxServlet extends PluginServlet {
     private void addTaxCode(final Tenant tenant, final ServletRequest req, final HttpServletResponse resp) throws IOException {
         final TaxCodeJson taxCodeJson = jsonMapper.readValue(getRequestData(req), TaxCodeJson.class);
         try {
-            dao.addTaxCode(taxCodeJson.productName, taxCodeJson.taxCode, clock.getUTCNow(), tenant.getId());
+            dao.setTaxCode(taxCodeJson.productName, taxCodeJson.taxCode, clock.getUTCNow(), tenant.getId());
         } catch (final SQLException e) {
             buildErrorResponse(e, resp);
             return;

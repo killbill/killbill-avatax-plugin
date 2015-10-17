@@ -57,7 +57,7 @@ public class TestAvaTaxDao extends TestWithEmbeddedDBBase {
 
         final String productName = UUID.randomUUID().toString();
         final String taxCode = UUID.randomUUID().toString();
-        dao.addTaxCode(productName,
+        dao.setTaxCode(productName,
                        taxCode,
                        new DateTime(DateTimeZone.UTC),
                        kbTenantId);

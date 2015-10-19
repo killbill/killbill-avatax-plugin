@@ -65,7 +65,7 @@ public class AvaTaxDao extends PluginDao {
     }
 
     public void setTaxCode(final String productName,
-                           final String taxCode,
+                           @Nullable final String taxCode,
                            final DateTime utcNow,
                            final UUID kbTenantId) throws SQLException {
         execute(dataSource.getConnection(),
@@ -83,16 +83,18 @@ public class AvaTaxDao extends PluginDao {
                                              .and(AVATAX_TAX_CODES.KB_TENANT_ID.equal(kbTenantId.toString()))
                                              .execute();
 
-                                   dslContext.insertInto(AVATAX_TAX_CODES,
-                                                         AVATAX_TAX_CODES.PRODUCT_NAME,
-                                                         AVATAX_TAX_CODES.TAX_CODE,
-                                                         AVATAX_TAX_CODES.CREATED_DATE,
-                                                         AVATAX_TAX_CODES.KB_TENANT_ID)
-                                             .values(productName,
-                                                     taxCode,
-                                                     toTimestamp(utcNow),
-                                                     kbTenantId.toString())
-                                             .execute();
+                                   if (taxCode != null) {
+                                       dslContext.insertInto(AVATAX_TAX_CODES,
+                                                             AVATAX_TAX_CODES.PRODUCT_NAME,
+                                                             AVATAX_TAX_CODES.TAX_CODE,
+                                                             AVATAX_TAX_CODES.CREATED_DATE,
+                                                             AVATAX_TAX_CODES.KB_TENANT_ID)
+                                                 .values(productName,
+                                                         taxCode,
+                                                         toTimestamp(utcNow),
+                                                         kbTenantId.toString())
+                                                 .execute();
+                                   }
                                }
                            });
                         return null;

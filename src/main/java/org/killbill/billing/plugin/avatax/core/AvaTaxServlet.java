@@ -93,6 +93,28 @@ public class AvaTaxServlet extends PluginServlet {
         }
     }
 
+    @Override
+    protected void doDelete(final HttpServletRequest req, final HttpServletResponse resp) throws ServletException, IOException {
+        final Tenant tenant = getTenant(req);
+        if (tenant == null) {
+            buildNotFoundResponse("No tenant specified", resp);
+            return;
+        }
+
+        final String pathInfo = req.getPathInfo();
+        final Matcher matcher = TAX_CODES_PATTERN.matcher(pathInfo);
+        if (matcher.matches()) {
+            final String productName = matcher.group(2);
+            if (productName != null) {
+                deleteTaxCode(productName, tenant, resp);
+            } else {
+                buildNotFoundResponse("Resource " + pathInfo + " not found", resp);
+            }
+        } else {
+            buildNotFoundResponse("Resource " + pathInfo + " not found", resp);
+        }
+    }
+
     private void getTaxCodes(final Tenant tenant, final HttpServletResponse resp) throws IOException {
         final List<AvataxTaxCodesRecord> taxCodesRecords;
         try {
@@ -138,6 +160,17 @@ public class AvaTaxServlet extends PluginServlet {
         }
 
         buildCreatedResponse("/plugins/killbill-avatax/taxCodes/" + taxCodeJson.productName, resp);
+    }
+
+    private void deleteTaxCode(final String productName, final Tenant tenant, final HttpServletResponse resp) throws IOException {
+        try {
+            dao.setTaxCode(productName, null, clock.getUTCNow(), tenant.getId());
+        } catch (final SQLException e) {
+            buildErrorResponse(e, resp);
+            return;
+        }
+
+        buildOKResponse(new byte[]{}, resp);
     }
 
     private static final class TaxCodeJson {

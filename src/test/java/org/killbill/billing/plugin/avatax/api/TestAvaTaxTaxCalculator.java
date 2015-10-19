@@ -138,6 +138,33 @@ public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
     }
 
     @Test(groups = "slow")
+    public void testShippingChargeWithAvaTaxTaxCalculator() throws Exception {
+        final AvaTaxConfigurationHandler avaTaxConfigurationHandler = new AvaTaxConfigurationHandler(AvaTaxActivator.PLUGIN_NAME, osgiKillbillAPI, osgiKillbillLogService);
+        avaTaxConfigurationHandler.setDefaultConfigurable(client);
+        final PluginTaxCalculator calculator = new AvaTaxTaxCalculator(avaTaxConfigurationHandler, dao, clock);
+
+        final Invoice invoice = TestUtils.buildInvoice(account);
+        final InvoiceItem taxableItem1 = TestUtils.buildInvoiceItem(invoice, InvoiceItemType.EXTERNAL_CHARGE, new BigDecimal("100"), null);
+        Mockito.when(taxableItem1.getUsageName()).thenReturn("FREIGHT");
+        Mockito.when(taxableItem1.getDescription()).thenReturn("Shipping Charge");
+        pluginProperties.add(new PluginProperty(String.format("%s_%s", AvaTaxTaxCalculator.TAX_CODE, taxableItem1.getId()), "FR", false));
+        final InvoiceItem taxableItem2 = TestUtils.buildInvoiceItem(invoice, InvoiceItemType.RECURRING, BigDecimal.TEN, null);
+        Mockito.when(taxableItem2.getDescription()).thenReturn(UUID.randomUUID().toString());
+        pluginProperties.add(new PluginProperty(String.format("%s_%s", AvaTaxTaxCalculator.TAX_CODE, taxableItem2.getId()), "DC010200", false));
+
+        final Map<UUID, InvoiceItem> taxableItems1 = ImmutableMap.<UUID, InvoiceItem>of(taxableItem1.getId(), taxableItem1,
+                                                                                        taxableItem2.getId(), taxableItem2);
+        final ImmutableMap<UUID, Collection<InvoiceItem>> initialAdjustmentItems = ImmutableMap.<UUID, Collection<InvoiceItem>>of();
+
+        // Compute the initial tax items
+        final List<InvoiceItem> initialTaxItems = calculator.compute(account, newInvoice, invoice, taxableItems1, initialAdjustmentItems, false, pluginProperties, tenantId);
+        Assert.assertEquals(dao.getSuccessfulResponses(invoice.getId(), tenantId).size(), 1);
+
+        // Check the created items
+        Assert.assertEquals(initialTaxItems.size(), 0);
+    }
+
+    @Test(groups = "slow")
     public void testWithTaxRatesTaxCalculator() throws Exception {
         final TaxRatesConfigurationHandler taxRatesConfigurationHandler = new TaxRatesConfigurationHandler(AvaTaxActivator.PLUGIN_NAME, osgiKillbillAPI, osgiKillbillLogService);
         taxRatesConfigurationHandler.setDefaultConfigurable(taxRatesClient);

@@ -44,8 +44,6 @@ import com.google.common.collect.ImmutableList;
 
 public abstract class AvaTaxTaxCalculatorBase extends PluginTaxCalculator {
 
-    public static final String PROPERTY_DRY_RUN = "dryRun";
-
     private static final Logger logger = LoggerFactory.getLogger(AvaTaxTaxCalculatorBase.class);
 
     protected final AvaTaxDao dao;

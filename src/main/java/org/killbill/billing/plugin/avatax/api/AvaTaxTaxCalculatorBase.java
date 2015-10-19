@@ -71,7 +71,8 @@ public abstract class AvaTaxTaxCalculatorBase extends PluginTaxCalculator {
             final List<AvataxResponsesRecord> responses = dao.getSuccessfulResponses(invoice.getId(), kbTenantId);
             alreadyTaxedItemsWithAdjustments = dao.getTaxedItemsWithAdjustments(responses);
         } catch (final SQLException e) {
-            throw new RuntimeException(e);
+            logger.warn("Unable to compute tax for account " + account.getId(), e);
+            return ImmutableList.<InvoiceItem>of();
         }
 
         // For AvaTax, we can only send one type of document at a time (Sales or Return). In some cases, we need to send both, for example
@@ -91,7 +92,8 @@ public abstract class AvaTaxTaxCalculatorBase extends PluginTaxCalculator {
                 final List<AvataxResponsesRecord> responses = dao.getSuccessfulResponses(invoice.getId(), kbTenantId);
                 originalInvoiceReferenceCode = responses.isEmpty() ? null : responses.get(0).getDocCode();
             } catch (final SQLException e) {
-                throw new RuntimeException(e);
+                logger.warn("Unable to compute tax for account " + account.getId(), e);
+                return newInvoiceItemsBuilder.build();
             }
 
             newInvoiceItemsBuilder.addAll(getTax(account, newInvoice, invoice, returnTaxItems, adjustmentItemsForReturnTaxItems, originalInvoiceReferenceCode, dryRun, pluginProperties, kbTenantId));
@@ -124,9 +126,14 @@ public abstract class AvaTaxTaxCalculatorBase extends PluginTaxCalculator {
         try {
             return buildInvoiceItems(account, newInvoice, invoice, taxableItems, adjustmentItems, originalInvoiceReferenceCode, dryRun, pluginProperties, kbTenantId, kbInvoiceItems, taxItemsDate);
         } catch (final AvaTaxClientException e) {
-            throw new RuntimeException(e);
+            logger.warn("Unable to compute tax for account " + account.getId(), e);
+            return ImmutableList.<InvoiceItem>of();
+        } catch (final RuntimeException e) {
+            logger.warn("Unable to compute tax for account " + account.getId(), e);
+            return ImmutableList.<InvoiceItem>of();
         } catch (final SQLException e) {
-            throw new RuntimeException(e);
+            logger.warn("Unable to compute tax for account " + account.getId(), e);
+            return ImmutableList.<InvoiceItem>of();
         }
     }
 

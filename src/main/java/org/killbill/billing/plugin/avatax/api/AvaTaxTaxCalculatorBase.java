@@ -67,11 +67,9 @@ public abstract class AvaTaxTaxCalculatorBase extends PluginTaxCalculator {
                                      final UUID kbTenantId) {
         // Retrieve what we've already taxed (Tax Rates API) or sent (AvaTax)
         final Map<UUID, Set<UUID>> alreadyTaxedItemsWithAdjustments;
-        final String originalInvoiceReferenceCode;
         try {
             final List<AvataxResponsesRecord> responses = dao.getSuccessfulResponses(invoice.getId(), kbTenantId);
             alreadyTaxedItemsWithAdjustments = dao.getTaxedItemsWithAdjustments(responses);
-            originalInvoiceReferenceCode = responses.isEmpty() ? null : responses.get(0).getDocCode();
         } catch (final SQLException e) {
             throw new RuntimeException(e);
         }
@@ -88,6 +86,14 @@ public abstract class AvaTaxTaxCalculatorBase extends PluginTaxCalculator {
             newInvoiceItemsBuilder.addAll(getTax(account, newInvoice, invoice, salesTaxItems, null, null, dryRun, pluginProperties, kbTenantId));
         }
         if (!returnTaxItems.isEmpty()) {
+            final String originalInvoiceReferenceCode;
+            try {
+                final List<AvataxResponsesRecord> responses = dao.getSuccessfulResponses(invoice.getId(), kbTenantId);
+                originalInvoiceReferenceCode = responses.isEmpty() ? null : responses.get(0).getDocCode();
+            } catch (final SQLException e) {
+                throw new RuntimeException(e);
+            }
+
             newInvoiceItemsBuilder.addAll(getTax(account, newInvoice, invoice, returnTaxItems, adjustmentItemsForReturnTaxItems, originalInvoiceReferenceCode, dryRun, pluginProperties, kbTenantId));
         }
         return newInvoiceItemsBuilder.build();

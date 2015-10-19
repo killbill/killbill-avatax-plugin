@@ -59,6 +59,7 @@ public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
     // Avalara requires to test at least two unique addresses for certification
     private Account account;
     private Account account2;
+    private Account account3;
     private Invoice newInvoice;
     private Invoice newInvoice2;
     private AvaTaxDao dao;
@@ -72,6 +73,7 @@ public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
 
         account = TestUtils.buildAccount(Currency.USD, "45 Fremont Street", null, "San Francisco", "CA", "94105", "US");
         account2 = TestUtils.buildAccount(Currency.USD, "118 N Clark St Ste 100", null, "San Francisco", "CA", "94105", "US");
+        account3 = TestUtils.buildAccount(Currency.USD, "118 N Clark St Ste 100", null, "Chicago", "IL", "60602", "US");
 
         newInvoice = TestUtils.buildInvoice(account);
         newInvoice2 = TestUtils.buildInvoice(account2);
@@ -113,6 +115,26 @@ public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
 
         // Check the created items
         checkCreatedItems(ImmutableMap.<UUID, InvoiceItemType>of(), initialTaxItems, newInvoice);
+    }
+
+    @Test(groups = "slow")
+    public void testInvoiceItemAdjustmentOnNewInvoiceWithAvaTaxTaxCalculator() throws Exception {
+        final AvaTaxConfigurationHandler avaTaxConfigurationHandler = new AvaTaxConfigurationHandler(AvaTaxActivator.PLUGIN_NAME, osgiKillbillAPI, osgiKillbillLogService);
+        avaTaxConfigurationHandler.setDefaultConfigurable(client);
+        final PluginTaxCalculator calculator = new AvaTaxTaxCalculator(avaTaxConfigurationHandler, dao, clock);
+
+        final Invoice invoice = TestUtils.buildInvoice(account3);
+        final InvoiceItem taxableItem1 = TestUtils.buildInvoiceItem(invoice, InvoiceItemType.EXTERNAL_CHARGE, new BigDecimal("100"), null);
+        final InvoiceItem adjustment1ForInvoiceItem1 = TestUtils.buildInvoiceItem(invoice, InvoiceItemType.ITEM_ADJ, BigDecimal.ONE.negate(), taxableItem1.getId());
+        final Map<UUID, InvoiceItem> taxableItems1 = ImmutableMap.<UUID, InvoiceItem>of(taxableItem1.getId(), taxableItem1);
+        final ImmutableMap<UUID, Collection<InvoiceItem>> adjustmentItems1 = ImmutableMap.<UUID, Collection<InvoiceItem>>of(taxableItem1.getId(), ImmutableList.<InvoiceItem>of(adjustment1ForInvoiceItem1));
+
+        // Compute the tax items
+        final List<InvoiceItem> initialTaxItems = calculator.compute(account3, invoice, invoice, taxableItems1, adjustmentItems1, false, pluginProperties, tenantId);
+        Assert.assertEquals(dao.getSuccessfulResponses(invoice.getId(), tenantId).size(), 2);
+
+        // Check the created items
+        Assert.assertEquals(initialTaxItems.size(), 8);
     }
 
     @Test(groups = "slow")

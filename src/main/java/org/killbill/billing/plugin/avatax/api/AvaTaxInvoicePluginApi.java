@@ -100,12 +100,12 @@ public class AvaTaxInvoicePluginApi extends PluginInvoicePluginApi {
     }
 
     private void checkForTaxCodesInCustomFields(final Invoice invoice, final Collection<PluginProperty> properties, final TenantContext context) {
-        final Collection<UUID> invoiceItemIds = new HashSet<UUID>();
         final List<CustomField> customFields = killbillAPI.getCustomFieldUserApi().getCustomFieldsForAccountType(invoice.getAccountId(), ObjectType.INVOICE_ITEM, context);
         if (customFields.isEmpty()) {
             return;
         }
 
+        final Collection<UUID> invoiceItemIds = new HashSet<UUID>();
         for (final InvoiceItem invoiceItem : invoice.getInvoiceItems()) {
             invoiceItemIds.add(invoiceItem.getId());
         }

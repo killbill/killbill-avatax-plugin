@@ -52,6 +52,7 @@ import org.killbill.clock.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -126,7 +127,7 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
         } else {
             final Collection<InvoiceItem> invoiceItems = new LinkedList<InvoiceItem>();
             for (final TaxDetail taxDetail : taxLine.TaxDetails) {
-                final String description = Objects.firstNonNull(taxDetail.TaxName, Objects.firstNonNull(taxDetail.JurisName, "Tax"));
+                final String description = MoreObjects.firstNonNull(taxDetail.TaxName, MoreObjects.firstNonNull(taxDetail.JurisName, "Tax"));
                 final InvoiceItem taxItem = buildTaxItem(taxableItem, invoiceId, utcToday, BigDecimal.valueOf(taxDetail.Tax), description);
                 if (taxItem != null) {
                     invoiceItems.add(taxItem);
@@ -198,7 +199,7 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
             taxRequest.Commit = true;
         }
 
-        taxRequest.CustomerCode = Objects.firstNonNull(account.getExternalKey(), account.getId()).toString();
+        taxRequest.CustomerCode = MoreObjects.firstNonNull(account.getExternalKey(), account.getId()).toString();
         taxRequest.Addresses = new Address[]{toAddress(account)};
         taxRequest.Lines = new Line[taxableItems.size()];
 
@@ -282,7 +283,7 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
             line.TaxOverride = new TaxOverrideDef();
             line.TaxOverride.TaxOverrideType = "TaxDate";
             // Note: we could also look-up the audit logs
-            line.TaxOverride.Reason = Objects.firstNonNull(adjustmentItems.iterator().next().getDescription(), "Adjustment");
+            line.TaxOverride.Reason = MoreObjects.firstNonNull(adjustmentItems.iterator().next().getDescription(), "Adjustment");
             line.TaxOverride.TaxAmount = null;
             line.TaxOverride.TaxDate = invoice.getInvoiceDate().toString();
         }

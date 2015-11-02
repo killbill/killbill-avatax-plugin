@@ -43,7 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
@@ -122,7 +122,7 @@ public class TaxRatesTaxCalculator extends AvaTaxTaxCalculatorBase {
                                                              newInvoice.getId(),
                                                              utcToday,
                                                              BigDecimal.valueOf(jurisTaxRate.rate).multiply(netItemAmount),
-                                                             Objects.firstNonNull(jurisTaxRate.name, "Tax"));
+                                                             MoreObjects.firstNonNull(jurisTaxRate.name, "Tax"));
                     if (taxItem != null) {
                         newTaxItems.add(taxItem);
                     }

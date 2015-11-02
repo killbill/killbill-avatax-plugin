@@ -18,7 +18,6 @@
 package org.killbill.billing.plugin.avatax.api;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -46,8 +45,8 @@ import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillAPI;
 import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillLogService;
 
 import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 public class AvaTaxInvoicePluginApi extends PluginInvoicePluginApi {
 
@@ -67,7 +66,7 @@ public class AvaTaxInvoicePluginApi extends PluginInvoicePluginApi {
 
     @Override
     public List<InvoiceItem> getAdditionalInvoiceItems(final Invoice invoice, final boolean dryRun, final Iterable<PluginProperty> properties, final CallContext context) {
-        final Collection<PluginProperty> pluginProperties = new ArrayList<PluginProperty>(ImmutableList.<PluginProperty>copyOf(properties));
+        final Collection<PluginProperty> pluginProperties = Lists.<PluginProperty>newArrayList(properties);
 
         checkForTaxExemption(invoice, pluginProperties, context);
         checkForTaxCodes(invoice, pluginProperties, context);
@@ -101,12 +100,12 @@ public class AvaTaxInvoicePluginApi extends PluginInvoicePluginApi {
     }
 
     private void checkForTaxCodesInCustomFields(final Invoice invoice, final Collection<PluginProperty> properties, final TenantContext context) {
-        final Collection<UUID> invoiceItemIds = new HashSet<UUID>();
         final List<CustomField> customFields = killbillAPI.getCustomFieldUserApi().getCustomFieldsForAccountType(invoice.getAccountId(), ObjectType.INVOICE_ITEM, context);
         if (customFields.isEmpty()) {
             return;
         }
 
+        final Collection<UUID> invoiceItemIds = new HashSet<UUID>();
         for (final InvoiceItem invoiceItem : invoice.getInvoiceItems()) {
             invoiceItemIds.add(invoiceItem.getId());
         }

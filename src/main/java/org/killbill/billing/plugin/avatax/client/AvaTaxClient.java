@@ -43,6 +43,7 @@ import com.google.common.collect.ImmutableMap;
 public class AvaTaxClient extends HttpClient {
 
     private final String companyCode;
+    private final boolean commitDocuments;
 
     public AvaTaxClient(final Properties properties) throws GeneralSecurityException {
         super(properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "url"),
@@ -52,10 +53,15 @@ public class AvaTaxClient extends HttpClient {
               ClientUtils.getIntegerProperty(properties, "proxyPort"),
               ClientUtils.getBooleanProperty(properties, "strictSSL"));
         this.companyCode = properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "companyCode");
+        this.commitDocuments = Boolean.parseBoolean(properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "commitDocuments"));
     }
 
     public String getCompanyCode() {
         return companyCode;
+    }
+
+    public boolean shouldCommitDocuments() {
+        return commitDocuments;
     }
 
     public boolean isConfigured() {

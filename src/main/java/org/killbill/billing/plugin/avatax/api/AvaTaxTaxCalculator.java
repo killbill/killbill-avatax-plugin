@@ -88,8 +88,9 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
                                                         final LocalDate utcToday) throws AvaTaxClientException, SQLException {
         final AvaTaxClient avaTaxClient = avaTaxConfigurationHandler.getConfigurable(kbTenantId);
         final String companyCode = avaTaxClient.getCompanyCode();
+        final boolean shouldCommitDocuments = !dryRun && avaTaxClient.shouldCommitDocuments();
 
-        final GetTaxRequest taxRequest = toTaxRequest(companyCode, account, invoice, taxableItems.values(), adjustmentItems, originalInvoiceReferenceCode, dryRun, pluginProperties, utcToday);
+        final GetTaxRequest taxRequest = toTaxRequest(companyCode, account, invoice, taxableItems.values(), adjustmentItems, originalInvoiceReferenceCode, !shouldCommitDocuments, pluginProperties, utcToday);
         logger.info("GetTaxRequest: {}", taxRequest.simplifiedToString());
 
         final GetTaxResult taxResult = avaTaxClient.getTax(taxRequest);

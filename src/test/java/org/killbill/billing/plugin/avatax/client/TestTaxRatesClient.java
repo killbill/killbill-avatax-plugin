@@ -38,18 +38,22 @@ public class TestTaxRatesClient extends AvaTaxRemoteTestBase {
 
     private void checkSFRates(final TaxRateResult result) {
         Assert.assertEquals(result.totalRate, 8.75);
-        Assert.assertEquals(result.rates.size(), 3);
+        Assert.assertEquals(result.rates.size(), 4);
 
-        Assert.assertEquals(result.rates.get(0).rate, 1.0);
+        Assert.assertEquals(result.rates.get(0).rate, 0.25);
         Assert.assertEquals(result.rates.get(0).name, "SAN FRANCISCO");
         Assert.assertEquals(result.rates.get(0).type, "County");
 
-        Assert.assertEquals(result.rates.get(1).rate, 6.5);
+        Assert.assertEquals(result.rates.get(1).rate, 6.25);
         Assert.assertEquals(result.rates.get(1).name, "CALIFORNIA");
         Assert.assertEquals(result.rates.get(1).type, "State");
 
-        Assert.assertEquals(result.rates.get(2).rate, 1.25);
-        Assert.assertEquals(result.rates.get(2).name, "SAN FRANCISCO COUNTY DISTRICT TAX SP");
+        Assert.assertEquals(result.rates.get(2).rate, 1.0);
+        Assert.assertEquals(result.rates.get(2).name, "SAN FRANCISCO CO LOCAL TAX SL");
         Assert.assertEquals(result.rates.get(2).type, "Special");
+
+        Assert.assertEquals(result.rates.get(3).rate, 1.25);
+        Assert.assertEquals(result.rates.get(3).name, "SAN FRANCISCO COUNTY DISTRICT TAX SP");
+        Assert.assertEquals(result.rates.get(3).type, "Special");
     }
 }

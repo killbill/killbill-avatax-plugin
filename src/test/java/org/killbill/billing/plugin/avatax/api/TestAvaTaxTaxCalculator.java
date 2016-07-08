@@ -242,9 +242,7 @@ public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
         Assert.assertEquals(dao.getSuccessfulResponses(invoice.getId(), tenantId).size(), 4);
     }
 
-    private void checkCreatedItems(final Map<UUID, InvoiceItemType> expectedInvoiceItemTypes, final Collection<InvoiceItem> createdItems, final Invoice newInvoice) {
-        // Times 2 here because there are two tax items generated each time, one for the state (California) and one for the county (San Francisco)
-        Assert.assertEquals(createdItems.size(), expectedInvoiceItemTypes.size() * 2);
+    private void checkCreatedItems(final Map<UUID, InvoiceItemType> expectedInvoiceItemTypes, final Iterable<InvoiceItem> createdItems, final Invoice newInvoice) {
         for (final InvoiceItem invoiceItem : createdItems) {
             Assert.assertEquals(invoiceItem.getInvoiceId(), newInvoice.getId());
             Assert.assertEquals(invoiceItem.getInvoiceItemType(), expectedInvoiceItemTypes.get(invoiceItem.getLinkedItemId()));

@@ -20,10 +20,10 @@ package org.killbill.billing.plugin.avatax.core;
 import java.security.GeneralSecurityException;
 import java.util.Properties;
 
+import org.killbill.billing.osgi.libs.killbill.OSGIKillbillAPI;
+import org.killbill.billing.osgi.libs.killbill.OSGIKillbillLogService;
 import org.killbill.billing.plugin.api.notification.PluginTenantConfigurableConfigurationHandler;
 import org.killbill.billing.plugin.avatax.client.TaxRatesClient;
-import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillAPI;
-import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillLogService;
 
 public class TaxRatesConfigurationHandler extends PluginTenantConfigurableConfigurationHandler<TaxRatesClient> {
 

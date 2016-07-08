@@ -24,6 +24,8 @@ import javax.servlet.http.HttpServlet;
 
 import org.killbill.billing.invoice.plugin.api.InvoicePluginApi;
 import org.killbill.billing.osgi.api.OSGIPluginProperties;
+import org.killbill.billing.osgi.libs.killbill.KillbillActivatorBase;
+import org.killbill.billing.osgi.libs.killbill.OSGIKillbillEventDispatcher;
 import org.killbill.billing.plugin.api.notification.PluginConfigurationEventHandler;
 import org.killbill.billing.plugin.avatax.api.AvalaraInvoicePluginApi;
 import org.killbill.billing.plugin.avatax.client.AvaTaxClient;
@@ -31,8 +33,6 @@ import org.killbill.billing.plugin.avatax.client.TaxRatesClient;
 import org.killbill.billing.plugin.avatax.dao.AvaTaxDao;
 import org.killbill.clock.Clock;
 import org.killbill.clock.DefaultClock;
-import org.killbill.killbill.osgi.libs.killbill.KillbillActivatorBase;
-import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillEventDispatcher;
 import org.osgi.framework.BundleContext;
 
 public class AvaTaxActivator extends KillbillActivatorBase {
@@ -52,6 +52,9 @@ public class AvaTaxActivator extends KillbillActivatorBase {
         final AvaTaxDao dao = new AvaTaxDao(dataSource.getDataSource());
         final Clock clock = new DefaultClock();
 
+        avaTaxConfigurationHandler = new AvaTaxConfigurationHandler(PLUGIN_NAME, killbillAPI, logService);
+        taxRatesConfigurationHandler = new TaxRatesConfigurationHandler(PLUGIN_NAME, killbillAPI, logService);
+
         // Avalara AvaTax API
         final AvaTaxClient globalAvataxClient = avaTaxConfigurationHandler.createConfigurable(configProperties.getProperties());
         avaTaxConfigurationHandler.setDefaultConfigurable(globalAvataxClient);
@@ -59,6 +62,8 @@ public class AvaTaxActivator extends KillbillActivatorBase {
         // Avalara Tax Rates API
         final TaxRatesClient globalTaxRatesClient = taxRatesConfigurationHandler.createConfigurable(configProperties.getProperties());
         taxRatesConfigurationHandler.setDefaultConfigurable(globalTaxRatesClient);
+
+
 
         final InvoicePluginApi invoicePluginApi = new AvalaraInvoicePluginApi(avaTaxConfigurationHandler,
                                                                               taxRatesConfigurationHandler,
@@ -71,13 +76,13 @@ public class AvaTaxActivator extends KillbillActivatorBase {
 
         final HttpServlet servlet = new AvaTaxServlet(dao, clock);
         registerServlet(context, servlet);
+
+        registerEventHandler();
     }
 
-    @Override
-    public OSGIKillbillEventDispatcher.OSGIKillbillEventHandler getOSGIKillbillEventHandler() {
-        avaTaxConfigurationHandler = new AvaTaxConfigurationHandler(PLUGIN_NAME, killbillAPI, logService);
-        taxRatesConfigurationHandler = new TaxRatesConfigurationHandler(PLUGIN_NAME, killbillAPI, logService);
-        return new PluginConfigurationEventHandler(avaTaxConfigurationHandler, taxRatesConfigurationHandler);
+    private void registerEventHandler() {
+        final PluginConfigurationEventHandler handler = new PluginConfigurationEventHandler(avaTaxConfigurationHandler, taxRatesConfigurationHandler);
+        dispatcher.registerEventHandlers(handler);
     }
 
     private void registerInvoicePluginApi(final BundleContext context, final InvoicePluginApi api) {

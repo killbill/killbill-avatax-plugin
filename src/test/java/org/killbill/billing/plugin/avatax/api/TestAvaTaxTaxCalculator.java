@@ -99,8 +99,8 @@ public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
         final PluginTaxCalculator calculator = new AvaTaxTaxCalculator(avaTaxConfigurationHandler, dao, clock);
 
         final Collection<PluginProperty> exemptProperties = new LinkedList<PluginProperty>(pluginProperties);
-        // E - Charitable Organization
-        exemptProperties.add(new PluginProperty(AvaTaxTaxCalculator.CUSTOMER_USAGE_TYPE, "E", false));
+        // A - FEDERAL GOV
+        exemptProperties.add(new PluginProperty(AvaTaxTaxCalculator.CUSTOMER_USAGE_TYPE, "A", false));
 
         final Invoice invoice = TestUtils.buildInvoice(account);
         final InvoiceItem taxableItem1 = TestUtils.buildInvoiceItem(invoice, InvoiceItemType.EXTERNAL_CHARGE, new BigDecimal("100"), null);

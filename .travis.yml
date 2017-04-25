@@ -5,11 +5,18 @@ cache:
   directories:
       - $HOME/.m2
 
-before_script: '[ "${TRAVIS_PULL_REQUEST}" = "false" ] && printf "org.killbill.billing.plugin.avatax.url=${AVATAX_URL}\\norg.killbill.billing.plugin.avatax.accountNumber=${AVATAX_ACCOUNT_NUMBER}\\norg.killbill.billing.plugin.avatax.licenseKey=${AVATAX_LICENSE_KEY}\\norg.killbill.billing.plugin.avatax.companyCode=${AVATAX_COMPANY_CODE}\\norg.killbill.billing.plugin.avatax.taxratesapi.url=${TAXRATESAPI_URL}\\norg.killbill.billing.plugin.avatax.taxratesapi.apiKey=${TAXRATESAPI_API_KEY}\\n" > src/test/resources/avatax.properties'
+dist: trusty
+
+before_install:
+  - echo "<settings><profiles><profile><repositories><repository><id>central</id><name>bintray</name><url>http://jcenter.bintray.com</url></repository></repositories><id>bintray</id></profile></profiles><activeProfiles><activeProfile>bintray</activeProfile></activeProfiles></settings>" > /var/tmp/settings.xml
+
+before_script:
+  - jdk_switcher use $JDK
+  - '[ "${TRAVIS_PULL_REQUEST}" = "false" ] && printf "org.killbill.billing.plugin.avatax.url=${AVATAX_URL}\\norg.killbill.billing.plugin.avatax.accountNumber=${AVATAX_ACCOUNT_NUMBER}\\norg.killbill.billing.plugin.avatax.licenseKey=${AVATAX_LICENSE_KEY}\\norg.killbill.billing.plugin.avatax.companyCode=${AVATAX_COMPANY_CODE}\\norg.killbill.billing.plugin.avatax.taxratesapi.url=${TAXRATESAPI_URL}\\norg.killbill.billing.plugin.avatax.taxratesapi.apiKey=${TAXRATESAPI_API_KEY}\\n" > src/test/resources/avatax.properties'
 after_script: rm -f src/test/resources/avatax.properties
 script: if [[ -v COMMAND ]]; then $COMMAND; else travis_retry mvn clean install $PHASE | egrep -v 'Download|Install'; [ ${PIPESTATUS[0]} == 0 ]; fi
 # Remove --quiet to avoid timeouts
-install: mvn -U install -DskipTests=true | egrep -v 'Download|Install'
+install: mvn -U install -DskipTests=true --settings /var/tmp/settings.xml | egrep -v 'Download|Install'
 
 notifications:
   email:
@@ -20,19 +27,13 @@ env:
     - MAVEN_OPTS="-Xmx512m -XX:MaxPermSize=192m"
 
 matrix:
-  allow_failures:
-    - jdk: oraclejdk8
   include:
-    - env: PHASE="-Ptravis"
-      jdk: openjdk7
-    - env: PHASE="-Ptravis"
-      jdk: oraclejdk7
-    - env: PHASE="-Ptravis,jdk17"
-      jdk: openjdk7
-    - env: PHASE="-Ptravis,jdk17"
-      jdk: oraclejdk7
-    - env: PHASE="-Ptravis,jdk18"
-      jdk: oraclejdk8
+    - env: PHASE="-Ptravis,jdk16" JDK=oraclejdk8
+    - env: PHASE="-Ptravis,jdk16" JDK=openjdk8
+    - env: PHASE="-Ptravis,jdk17" JDK=oraclejdk8
+    - env: PHASE="-Ptravis,jdk17" JDK=openjdk8
+    - env: PHASE="-Ptravis,jdk18" JDK=oraclejdk8
+    - env: PHASE="-Ptravis,jdk18" JDK=openjdk8
   fast_finish: true
 
 after_success:

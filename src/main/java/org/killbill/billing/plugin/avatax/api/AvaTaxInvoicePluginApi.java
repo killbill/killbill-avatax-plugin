@@ -70,6 +70,7 @@ public class AvaTaxInvoicePluginApi extends PluginInvoicePluginApi {
 
         checkForTaxExemption(invoice, pluginProperties, context);
         checkForTaxCodes(invoice, pluginProperties, context);
+        checkForBusinessIdentification(invoice, pluginProperties, context);
 
         return getAdditionalTaxInvoiceItems(calculator, invoice, dryRun, pluginProperties, context);
     }
@@ -170,6 +171,26 @@ public class AvaTaxInvoicePluginApi extends PluginInvoicePluginApi {
         // Already in plugin properties?
         if (PluginProperties.findPluginPropertyValue(pluginPropertyName, properties) == null) {
             properties.add(new PluginProperty(pluginPropertyName, taxCode, false));
+        }
+    }
+
+    private void checkForBusinessIdentification(final Invoice invoice, final Collection<PluginProperty> properties, final TenantContext context) {
+        // Overridden by plugin properties?
+        if (PluginProperties.findPluginPropertyValue(AvaTaxTaxCalculator.BUSINESS_IDENTIFICATION_NUMBER, properties) != null) {
+            return;
+        }
+
+        final List<CustomField> customFields = killbillAPI.getCustomFieldUserApi().getCustomFieldsForObject(invoice.getAccountId(), ObjectType.ACCOUNT, context);
+        final CustomField customField = Iterables.<CustomField>tryFind(customFields,
+                                                                       new Predicate<CustomField>() {
+                                                                           @Override
+                                                                           public boolean apply(final CustomField customField) {
+                                                                               return AvaTaxTaxCalculator.BUSINESS_IDENTIFICATION_NUMBER.equals(customField.getFieldName());
+                                                                           }
+                                                                       }).orNull();
+
+        if (customField != null) {
+            properties.add(new PluginProperty(AvaTaxTaxCalculator.BUSINESS_IDENTIFICATION_NUMBER, customField.getFieldValue(), false));
         }
     }
 }

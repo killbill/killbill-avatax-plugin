@@ -61,6 +61,7 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
 
     public static final String PROPERTY_COMPANY_CODE = "companyCode";
     public static final String CUSTOMER_USAGE_TYPE = "customerUsageType";
+    public static final String BUSINESS_IDENTIFICATION_NUMBER = "businessIdentificationNumber";
     public static final String TAX_CODE = "taxCode";
 
     private static final Logger logger = LoggerFactory.getLogger(AvaTaxTaxCalculator.class);
@@ -226,7 +227,7 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
         taxRequest.ExemptionNo = null;
         taxRequest.Discount = BigDecimal.ZERO;
         // Required for VAT
-        taxRequest.BusinessIdentificationNo = null;
+        taxRequest.BusinessIdentificationNo = PluginProperties.findPluginPropertyValue(BUSINESS_IDENTIFICATION_NUMBER, pluginProperties);
         taxRequest.PaymentDate = null;
         taxRequest.PosLaneCode = null;
 

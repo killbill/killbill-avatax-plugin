@@ -100,6 +100,14 @@ See [Handling tax exempt customers](http://developer.avalara.com/api-docs/design
 
 The plugin doesn't yet integrate with [Avalara CertCapture](http://www.avalara.com/products/certcapture/) to manage exemption certificates, but feel free to [get in touch](https://groups.google.com/forum/#!forum/killbilling-users) to see this feature added.
 
+### Setting a business identification number
+
+For sales in the European Union (EU), a VAT indentification number may be set on an account using a `businessIdentificationNumber` custom field, so that the VAT is calculated accordingly.
+
+See [VAT Transactions](https://developer.avalara.com/avatax/vat-transactions/) for more details.
+
+Note that you should validate the VAT number before yourself, the plugin won't perform any validation. See [VIES](http://ec.europa.eu/taxation_customs/vies/technicalInformation.html) for an EU validation API.
+
 ### Setting tax codes
 
 There are several ways to configure tax codes:

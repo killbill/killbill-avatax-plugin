@@ -102,7 +102,7 @@ The plugin doesn't yet integrate with [Avalara CertCapture](http://www.avalara.c
 
 ### Setting a business identification number
 
-For sales in the European Union (EU), a VAT indentification number may be set on an account using a `businessIdentificationNumber` custom field, so that the VAT is calculated accordingly.
+For sales in the European Union (EU), a VAT identification number may be set on an account using a `businessIdentificationNumber` custom field, so that the VAT is calculated accordingly.
 
 See [VAT Transactions](https://developer.avalara.com/avatax/vat-transactions/) for more details.
 

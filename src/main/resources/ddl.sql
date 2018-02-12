@@ -2,7 +2,7 @@
 
 drop table if exists avatax_responses;
 create table avatax_responses (
-  record_id int(11) unsigned not null auto_increment
+  record_id serial unique
 , kb_account_id char(36) not null
 , kb_invoice_id char(36) not null
 , kb_invoice_item_ids longtext default null
@@ -31,7 +31,7 @@ create index avatax_responses_kb_invoice_id on avatax_responses(kb_invoice_id);
 
 drop table if exists avatax_tax_codes;
 create table avatax_tax_codes (
-  record_id int(11) unsigned not null auto_increment
+  record_id serial unique
 , product_name varchar(255) not null
 , tax_code varchar(255) not null
 , created_date datetime not null

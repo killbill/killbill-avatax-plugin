@@ -20,7 +20,7 @@
     <parent>
         <artifactId>killbill-oss-parent</artifactId>
         <groupId>org.kill-bill.billing</groupId>
-        <version>0.140.2</version>
+        <version>0.140.54</version>
     </parent>
     <groupId>org.kill-bill.billing.plugin.java</groupId>
     <artifactId>avatax-plugin</artifactId>
@@ -38,6 +38,11 @@
         <system>Github</system>
         <url>https://github.com/killbill/killbill-avatax-plugin/issues</url>
     </issueManagement>
+    <properties>
+        <!-- More recent versions than the core (JDK1.8+) -->
+        <guava.version>21.0</guava.version>
+        <jackson.version>2.9.2</jackson.version>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>com.google.code.findbugs</groupId>
@@ -59,6 +64,21 @@
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.airlift</groupId>
+            <artifactId>command</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.airlift</groupId>
+            <artifactId>testing-postgresql-server</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.airlift</groupId>
+            <artifactId>units</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>javax.servlet</groupId>
@@ -91,9 +111,18 @@
             <artifactId>killbill-platform-osgi-bundles-lib-slf4j-osgi</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.kill-bill.billing</groupId>
+            <artifactId>killbill-platform-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.kill-bill.billing.plugin</groupId>
             <artifactId>killbill-plugin-api-invoice</artifactId>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.yaml</groupId>
+            <artifactId>snakeyaml</artifactId>
         </dependency>
         <dependency>
             <groupId>com.ning</groupId>
@@ -184,7 +213,7 @@
                 <configuration>
                     <instructions>
                         <Bundle-Activator>org.killbill.billing.plugin.avatax.core.AvaTaxActivator</Bundle-Activator>
-                        <Export-Package />
+                        <Export-Package/>
                         <Private-Package>org.killbill.billing.plugin.avatax.*</Private-Package>
                         <!-- Optional resolution because exported by the Felix system bundle -->
                         <Import-Package>org.killbill.billing.account.api;
@@ -277,4 +306,45 @@
             </plugin>
         </plugins>
     </build>
+    <profiles>
+        <profile>
+            <id>jdk18</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <configuration>
+                            <source>1.8</source>
+                            <target>1.8</target>
+                            <showDeprecation>true</showDeprecation>
+                            <showWarnings>true</showWarnings>
+                            <fork>true</fork>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-jar-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>jar</goal>
+                                    <goal>test-jar</goal>
+                                </goals>
+                                <configuration>
+                                    <classifier>jdk18</classifier>
+                                </configuration>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <skipIfEmpty>true</skipIfEmpty>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

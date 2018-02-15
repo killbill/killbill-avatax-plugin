@@ -1,6 +1,6 @@
 /*
- * Copyright 2015 Groupon, Inc
- * Copyright 2015 The Billing Project, LLC
+ * Copyright 2014-2018 Groupon, Inc
+ * Copyright 2014-2018 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -20,11 +20,13 @@ package org.killbill.billing.plugin.avatax;
 import java.security.GeneralSecurityException;
 import java.util.Properties;
 
+import org.killbill.billing.platform.test.PlatformDBTestingHelper;
 import org.killbill.billing.plugin.TestUtils;
 import org.killbill.billing.plugin.TestWithEmbeddedDBBase;
 import org.killbill.billing.plugin.avatax.client.AvaTaxClient;
 import org.killbill.billing.plugin.avatax.client.TaxRatesClient;
 import org.killbill.billing.plugin.avatax.core.AvaTaxActivator;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 
 public abstract class AvaTaxRemoteTestBase extends TestWithEmbeddedDBBase {
@@ -37,7 +39,26 @@ public abstract class AvaTaxRemoteTestBase extends TestWithEmbeddedDBBase {
     protected TaxRatesClient taxRatesClient;
     protected String companyCode;
 
-    @BeforeMethod(groups = "slow")
+    @BeforeClass(groups = "slow")
+    @Override
+    public void setUpBeforeClass() throws Exception {
+        embeddedDB = PlatformDBTestingHelper.get().getInstance();
+        embeddedDB.initialize();
+        embeddedDB.start();
+
+        final String databaseSpecificDDL = "ddl-" + embeddedDB.getDBEngine().name().toLowerCase() + ".sql";
+        try {
+            embeddedDB.executeScript(TestUtils.toString(databaseSpecificDDL));
+        } catch (final IllegalArgumentException e) {
+            // Ignore, no engine specific DDL
+        }
+
+        final String ddl = TestUtils.toString(getDdlFileName());
+        embeddedDB.executeScript(ddl);
+        embeddedDB.refreshTableNames();
+    }
+
+    @BeforeMethod(groups = "integration")
     public void beforeMethod() throws Exception {
         final Properties properties = TestUtils.loadProperties(AVATAX_PROPERTIES);
         buildAvataxClient(properties);

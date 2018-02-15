@@ -1,6 +1,6 @@
 /*
- * Copyright 2015 Groupon, Inc
- * Copyright 2015 The Billing Project, LLC
+ * Copyright 2014-2018 Groupon, Inc
+ * Copyright 2014-2018 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -36,7 +36,7 @@ import org.testng.annotations.Test;
 
 public class TestAvaTaxClient extends AvaTaxRemoteTestBase {
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testGetTax() throws Exception {
         final GetTaxRequest getTaxRequest = new GetTaxRequest();
         getTaxRequest.CustomerCode = UUID.randomUUID().toString();
@@ -73,7 +73,7 @@ public class TestAvaTaxClient extends AvaTaxRemoteTestBase {
         Assert.assertNotNull(result.Messages);
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testEstimateTax() throws Exception {
         final GeoTaxResult result = client.estimateTax(47.627935, -122.51702, 10.0);
         Assert.assertEquals(result.ResultCode, CommonResponse.SeverityLevel.Success, Arrays.toString(result.Messages));

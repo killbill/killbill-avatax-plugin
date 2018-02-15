@@ -24,13 +24,13 @@ import org.testng.annotations.Test;
 
 public class TestTaxRatesClient extends AvaTaxRemoteTestBase {
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testFromPostal() throws Exception {
         final TaxRateResult result = taxRatesClient.fromPostal("94105-2204", "US");
         checkSFRates(result);
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testFromAddress() throws Exception {
         final TaxRateResult result = taxRatesClient.fromAddress("45 Fremont St", "San Francisco", "CA", "94105", "US");
         checkSFRates(result);

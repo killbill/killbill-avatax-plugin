@@ -1,6 +1,6 @@
 /*
- * Copyright 2015 Groupon, Inc
- * Copyright 2015 The Billing Project, LLC
+ * Copyright 2014-2018 Groupon, Inc
+ * Copyright 2014-2018 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -35,9 +35,11 @@ import org.killbill.billing.plugin.avatax.client.model.ValidateResult;
 import org.killbill.billing.plugin.avatax.core.AvaTaxActivator;
 import org.killbill.billing.plugin.util.http.HttpClient;
 import org.killbill.billing.plugin.util.http.InvalidRequest;
+import org.killbill.billing.plugin.util.http.ResponseFormat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
 
 public class AvaTaxClient extends HttpClient {
@@ -51,7 +53,9 @@ public class AvaTaxClient extends HttpClient {
               properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "licenseKey"),
               properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "proxyHost"),
               ClientUtils.getIntegerProperty(properties, "proxyPort"),
-              ClientUtils.getBooleanProperty(properties, "strictSSL"));
+              ClientUtils.getBooleanProperty(properties, "strictSSL"),
+              MoreObjects.firstNonNull(ClientUtils.getIntegerProperty(properties, "connectTimeout"), 10000),
+              MoreObjects.firstNonNull(ClientUtils.getIntegerProperty(properties, "readTimeout"), 60000));
         this.companyCode = properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "companyCode");
         this.commitDocuments = Boolean.parseBoolean(properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "commitDocuments"));
     }
@@ -103,7 +107,7 @@ public class AvaTaxClient extends HttpClient {
             throw new AvaTaxClientException(e);
         } catch (final InvalidRequest e) {
             try {
-                return deserializeResponse(e.getResponse(), ValidateResult.class);
+                return deserializeResponse(e.getResponse(), ValidateResult.class, ResponseFormat.JSON);
             } catch (final IOException e1) {
                 throw new AvaTaxClientException(e1);
             }
@@ -129,7 +133,7 @@ public class AvaTaxClient extends HttpClient {
             throw new AvaTaxClientException(e);
         } catch (final InvalidRequest e) {
             try {
-                return deserializeResponse(e.getResponse(), GetTaxResult.class);
+                return deserializeResponse(e.getResponse(), GetTaxResult.class, ResponseFormat.JSON);
             } catch (final IOException e1) {
                 throw new AvaTaxClientException(e1);
             }
@@ -157,7 +161,7 @@ public class AvaTaxClient extends HttpClient {
             throw new AvaTaxClientException(e);
         } catch (final InvalidRequest e) {
             try {
-                return deserializeResponse(e.getResponse(), CancelTaxResult.class);
+                return deserializeResponse(e.getResponse(), CancelTaxResult.class, ResponseFormat.JSON);
             } catch (final IOException e1) {
                 throw new AvaTaxClientException(e1);
             }
@@ -183,7 +187,7 @@ public class AvaTaxClient extends HttpClient {
             throw new AvaTaxClientException(e);
         } catch (final InvalidRequest e) {
             try {
-                return deserializeResponse(e.getResponse(), GeoTaxResult.class);
+                return deserializeResponse(e.getResponse(), GeoTaxResult.class, ResponseFormat.JSON);
             } catch (final IOException e1) {
                 throw new AvaTaxClientException(e1);
             }

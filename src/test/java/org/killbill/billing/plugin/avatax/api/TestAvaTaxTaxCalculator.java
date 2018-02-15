@@ -66,7 +66,7 @@ public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
     private OSGIKillbillAPI osgiKillbillAPI;
     private OSGIKillbillLogService osgiKillbillLogService;
 
-    @BeforeMethod(groups = "slow")
+    @BeforeMethod(groups = "integration")
     public void setUp() throws Exception {
         pluginProperties.add(new PluginProperty(TaxRatesTaxCalculator.RATE_TYPE, "County", false));
         pluginProperties.add(new PluginProperty(TaxRatesTaxCalculator.RATE_TYPE, "State", false));
@@ -84,7 +84,7 @@ public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
         osgiKillbillLogService = TestUtils.buildLogService();
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testWithAvaTaxTaxCalculator() throws Exception {
         final AvaTaxConfigurationHandler avaTaxConfigurationHandler = new AvaTaxConfigurationHandler(AvaTaxActivator.PLUGIN_NAME, osgiKillbillAPI, osgiKillbillLogService);
         avaTaxConfigurationHandler.setDefaultConfigurable(client);
@@ -92,7 +92,7 @@ public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
         testComputeItemsOverTime(calculator);
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testExemptionWithAvaTaxTaxCalculator() throws Exception {
         final AvaTaxConfigurationHandler avaTaxConfigurationHandler = new AvaTaxConfigurationHandler(AvaTaxActivator.PLUGIN_NAME, osgiKillbillAPI, osgiKillbillLogService);
         avaTaxConfigurationHandler.setDefaultConfigurable(client);
@@ -116,7 +116,7 @@ public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
         checkCreatedItems(ImmutableMap.<UUID, InvoiceItemType>of(), initialTaxItems, newInvoice);
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testInvoiceItemAdjustmentOnNewInvoiceWithAvaTaxTaxCalculator() throws Exception {
         final AvaTaxConfigurationHandler avaTaxConfigurationHandler = new AvaTaxConfigurationHandler(AvaTaxActivator.PLUGIN_NAME, osgiKillbillAPI, osgiKillbillLogService);
         avaTaxConfigurationHandler.setDefaultConfigurable(client);
@@ -136,7 +136,7 @@ public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
         Assert.assertEquals(initialTaxItems.size(), 8);
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testShippingChargeWithAvaTaxTaxCalculator() throws Exception {
         final AvaTaxConfigurationHandler avaTaxConfigurationHandler = new AvaTaxConfigurationHandler(AvaTaxActivator.PLUGIN_NAME, osgiKillbillAPI, osgiKillbillLogService);
         avaTaxConfigurationHandler.setDefaultConfigurable(client);
@@ -163,7 +163,7 @@ public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
         Assert.assertEquals(initialTaxItems.size(), 0);
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testWithTaxRatesTaxCalculator() throws Exception {
         final TaxRatesConfigurationHandler taxRatesConfigurationHandler = new TaxRatesConfigurationHandler(AvaTaxActivator.PLUGIN_NAME, osgiKillbillAPI, osgiKillbillLogService);
         taxRatesConfigurationHandler.setDefaultConfigurable(taxRatesClient);

@@ -213,7 +213,7 @@
                 <configuration>
                     <instructions>
                         <Bundle-Activator>org.killbill.billing.plugin.avatax.core.AvaTaxActivator</Bundle-Activator>
-                        <Export-Package/>
+                        <Export-Package />
                         <Private-Package>org.killbill.billing.plugin.avatax.*</Private-Package>
                         <!-- Optional resolution because exported by the Felix system bundle -->
                         <Import-Package>org.killbill.billing.account.api;

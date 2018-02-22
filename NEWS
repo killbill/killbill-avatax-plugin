@@ -1,3 +1,6 @@
+0.5.0
+    Initial release for Kill Bill 0.19.x
+
 0.4.1
     PostgreSQL support
     Update killbill-oss-parent to 0.140.54

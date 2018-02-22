@@ -36,20 +36,12 @@ import org.killbill.billing.plugin.avatax.client.model.CommonResponse;
 import org.killbill.billing.plugin.avatax.client.model.GetTaxResult;
 import org.killbill.billing.plugin.avatax.dao.gen.tables.records.AvataxResponsesRecord;
 import org.testng.Assert;
-import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 public class TestAvaTaxDao extends AvaTaxRemoteTestBase {
-
-    private AvaTaxDao dao;
-
-    @BeforeMethod(groups = "slow")
-    public void setUp() throws Exception {
-        dao = new AvaTaxDao(embeddedDB.getDataSource());
-    }
 
     @Test(groups = "slow")
     public void testCreateReadTaxCodes() throws Exception {

@@ -24,7 +24,7 @@
     </parent>
     <groupId>org.kill-bill.billing.plugin.java</groupId>
     <artifactId>avatax-plugin</artifactId>
-    <version>0.5.0</version>
+    <version>0.5.1-SNAPSHOT</version>
     <packaging>bundle</packaging>
     <name>Kill Bill OSGI AvaTax plugin</name>
     <description>Kill Bill AvaTax plugin</description>

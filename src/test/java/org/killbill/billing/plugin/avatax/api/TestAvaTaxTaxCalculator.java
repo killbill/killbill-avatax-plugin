@@ -31,7 +31,6 @@ import org.killbill.billing.invoice.api.InvoiceItem;
 import org.killbill.billing.invoice.api.InvoiceItemType;
 import org.killbill.billing.osgi.libs.killbill.OSGIKillbillAPI;
 import org.killbill.billing.osgi.libs.killbill.OSGIKillbillLogService;
-import org.killbill.billing.payment.api.Payment;
 import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.TestUtils;
 import org.killbill.billing.plugin.api.invoice.PluginTaxCalculator;
@@ -39,7 +38,6 @@ import org.killbill.billing.plugin.avatax.AvaTaxRemoteTestBase;
 import org.killbill.billing.plugin.avatax.core.AvaTaxActivator;
 import org.killbill.billing.plugin.avatax.core.AvaTaxConfigurationHandler;
 import org.killbill.billing.plugin.avatax.core.TaxRatesConfigurationHandler;
-import org.killbill.billing.plugin.avatax.dao.AvaTaxDao;
 import org.killbill.clock.Clock;
 import org.killbill.clock.DefaultClock;
 import org.mockito.Mockito;
@@ -62,7 +60,6 @@ public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
     private Account account3;
     private Invoice newInvoice;
     private Invoice newInvoice2;
-    private AvaTaxDao dao;
     private OSGIKillbillAPI osgiKillbillAPI;
     private OSGIKillbillLogService osgiKillbillLogService;
 
@@ -77,8 +74,6 @@ public class TestAvaTaxTaxCalculator extends AvaTaxRemoteTestBase {
 
         newInvoice = TestUtils.buildInvoice(account);
         newInvoice2 = TestUtils.buildInvoice(account2);
-
-        dao = new AvaTaxDao(embeddedDB.getDataSource());
 
         osgiKillbillAPI = TestUtils.buildOSGIKillbillAPI(account);
         osgiKillbillLogService = TestUtils.buildLogService();

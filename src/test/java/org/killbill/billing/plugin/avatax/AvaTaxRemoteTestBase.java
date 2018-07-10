@@ -20,16 +20,16 @@ package org.killbill.billing.plugin.avatax;
 import java.security.GeneralSecurityException;
 import java.util.Properties;
 
-import org.killbill.billing.platform.test.PlatformDBTestingHelper;
 import org.killbill.billing.plugin.TestUtils;
-import org.killbill.billing.plugin.TestWithEmbeddedDBBase;
 import org.killbill.billing.plugin.avatax.client.AvaTaxClient;
 import org.killbill.billing.plugin.avatax.client.TaxRatesClient;
 import org.killbill.billing.plugin.avatax.core.AvaTaxActivator;
-import org.testng.annotations.BeforeClass;
+import org.killbill.billing.plugin.avatax.dao.AvaTaxDao;
+import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.BeforeSuite;
 
-public abstract class AvaTaxRemoteTestBase extends TestWithEmbeddedDBBase {
+public abstract class AvaTaxRemoteTestBase {
 
     // To run these tests, you need a properties file in the classpath (e.g. src/test/resources/avatax.properties)
     // See README.md for details on the required properties
@@ -38,31 +38,29 @@ public abstract class AvaTaxRemoteTestBase extends TestWithEmbeddedDBBase {
     protected AvaTaxClient client;
     protected TaxRatesClient taxRatesClient;
     protected String companyCode;
+    protected AvaTaxDao dao;
 
-    @BeforeClass(groups = "slow")
-    @Override
-    public void setUpBeforeClass() throws Exception {
-        embeddedDB = PlatformDBTestingHelper.get().getInstance();
-        embeddedDB.initialize();
-        embeddedDB.start();
+    @BeforeSuite(groups = {"slow", "integration"})
+    public void setUpBeforeSuite() throws Exception {
+        EmbeddedDbHelper.instance().startDb();
+    }
 
-        final String databaseSpecificDDL = "ddl-" + embeddedDB.getDBEngine().name().toLowerCase() + ".sql";
-        try {
-            embeddedDB.executeScript(TestUtils.toString(databaseSpecificDDL));
-        } catch (final IllegalArgumentException e) {
-            // Ignore, no engine specific DDL
-        }
-
-        final String ddl = TestUtils.toString(getDdlFileName());
-        embeddedDB.executeScript(ddl);
-        embeddedDB.refreshTableNames();
+    @BeforeMethod(groups = {"slow", "integration"})
+    public void setUpBeforeMethod() throws Exception {
+        EmbeddedDbHelper.instance().resetDB();
+        dao = new AvaTaxDao(EmbeddedDbHelper.instance().getDataSource());
     }
 
     @BeforeMethod(groups = "integration")
-    public void beforeMethod() throws Exception {
+    public void setUpBeforeMethod2() throws Exception {
         final Properties properties = TestUtils.loadProperties(AVATAX_PROPERTIES);
         buildAvataxClient(properties);
         buildTaxRatesClient(properties);
+    }
+
+    @AfterSuite(groups = {"slow", "integration"})
+    public void tearDownAfterSuite() throws Exception {
+        EmbeddedDbHelper.instance().stopDB();
     }
 
     private void buildAvataxClient(final Properties properties) throws GeneralSecurityException {

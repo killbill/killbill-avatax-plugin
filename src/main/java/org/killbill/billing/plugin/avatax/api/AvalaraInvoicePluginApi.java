@@ -27,6 +27,7 @@ import org.killbill.billing.osgi.libs.killbill.OSGIConfigPropertiesService;
 import org.killbill.billing.osgi.libs.killbill.OSGIKillbillAPI;
 import org.killbill.billing.osgi.libs.killbill.OSGIKillbillLogService;
 import org.killbill.billing.payment.api.PluginProperty;
+import org.killbill.billing.plugin.api.invoice.PluginInvoicePluginApi;
 import org.killbill.billing.plugin.avatax.client.AvaTaxClient;
 import org.killbill.billing.plugin.avatax.client.TaxRatesClient;
 import org.killbill.billing.plugin.avatax.core.AvaTaxConfigurationHandler;
@@ -37,7 +38,7 @@ import org.killbill.clock.Clock;
 
 import com.google.common.collect.ImmutableList;
 
-public class AvalaraInvoicePluginApi implements InvoicePluginApi {
+public class AvalaraInvoicePluginApi extends PluginInvoicePluginApi {
 
     private final AvaTaxConfigurationHandler avaTaxConfigurationHandler;
     private final TaxRatesConfigurationHandler taxRatesConfigurationHandler;
@@ -51,6 +52,7 @@ public class AvalaraInvoicePluginApi implements InvoicePluginApi {
                                    final OSGIConfigPropertiesService configProperties,
                                    final OSGIKillbillLogService logService,
                                    final Clock clock) {
+        super(killbillAPI, configProperties, logService, clock);
         this.avaTaxConfigurationHandler = avaTaxConfigurationHandler;
         this.taxRatesConfigurationHandler = taxRatesConfigurationHandler;
 

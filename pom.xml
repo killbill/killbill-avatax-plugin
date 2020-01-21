@@ -20,11 +20,11 @@
     <parent>
         <artifactId>killbill-oss-parent</artifactId>
         <groupId>org.kill-bill.billing</groupId>
-        <version>0.143.44</version>
+        <version>0.143.49</version>
     </parent>
     <groupId>org.kill-bill.billing.plugin.java</groupId>
     <artifactId>avatax-plugin</artifactId>
-    <version>0.6.2-SNAPSHOT</version>
+    <version>0.7.0-SNAPSHOT</version>
     <packaging>bundle</packaging>
     <name>Kill Bill OSGI AvaTax plugin</name>
     <description>Kill Bill AvaTax plugin</description>

@@ -20,11 +20,11 @@
     <parent>
         <artifactId>killbill-oss-parent</artifactId>
         <groupId>org.kill-bill.billing</groupId>
-        <version>0.142.1</version>
+        <version>0.143.49</version>
     </parent>
     <groupId>org.kill-bill.billing.plugin.java</groupId>
     <artifactId>avatax-plugin</artifactId>
-    <version>0.6.2-SNAPSHOT</version>
+    <version>0.7.1-SNAPSHOT</version>
     <packaging>bundle</packaging>
     <name>Kill Bill OSGI AvaTax plugin</name>
     <description>Kill Bill AvaTax plugin</description>
@@ -38,11 +38,6 @@
         <system>Github</system>
         <url>https://github.com/killbill/killbill-avatax-plugin/issues</url>
     </issueManagement>
-    <properties>
-        <!-- More recent versions than the core (JDK1.8+) -->
-        <guava.version>21.0</guava.version>
-        <jackson.version>2.9.5</jackson.version>
-    </properties>
     <dependencies>
         <dependency>
             <groupId>com.google.code.findbugs</groupId>

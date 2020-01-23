@@ -138,7 +138,7 @@ public class AvaTaxInvoicePluginApi extends PluginInvoicePluginApi {
             if (planToProductCache.get(planName) == null) {
                 try {
                     final StaticCatalog catalog = killbillAPI.getCatalogUserApi().getCurrentCatalog(null, context);
-                    final Plan plan = catalog.findCurrentPlan(planName);
+                    final Plan plan = catalog.findPlan(planName);
                     planToProductCache.put(planName, plan.getProduct().getName());
                 } catch (final CatalogApiException e) {
                     continue;

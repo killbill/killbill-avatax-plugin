@@ -41,12 +41,15 @@ The following properties are optional:
 * `org.killbill.billing.plugin.avatax.companyCode`: your default company code (can be passed using the plugin property `companyCode`)
 * `org.killbill.billing.plugin.avatax.commitDocuments`: whether invoices should be committed to Avalara
 
-### Tax Rates API
+### TaxRates API
+
+The TaxRates API is a free-to-use, no cost option for estimating sales tax rates. Any customer can request a [free AvaTax account](https://developer.avalara.com/api-reference/avatax/rest/v2/methods/Free/RequestFreeTrial/) and make use of the TaxRates API.
 
 The following properties are required:
 
-* `org.killbill.billing.plugin.avatax.taxratesapi.url`: Tax Rates API endpoint (e.g. https://taxrates.api.avalara.com)
-* `org.killbill.billing.plugin.avatax.taxratesapi.apiKey`: your API Key
+* `org.killbill.billing.plugin.avatax.taxratesapi.url`: Tax Rates API endpoint (e.g. https://sandbox-rest.avatax.com/api/v2/taxrates)
+* `org.killbill.billing.plugin.avatax.taxratesapi.accountId`: your account ID
+* `org.killbill.billing.plugin.avatax.taxratesapi.licenseKey`: your license Key
 
 You can pass the `rateType` plugin property to specify which rate(s) to take into account.
 

@@ -1,6 +1,7 @@
 /*
- * Copyright 2015 Groupon, Inc
- * Copyright 2015 The Billing Project, LLC
+ * Copyright 2015-2020 Groupon, Inc
+ * Copyright 2020-2020 Equinix, Inc
+ * Copyright 2015-2020 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -19,7 +20,6 @@ package org.killbill.billing.plugin.avatax.api;
 
 import java.math.BigDecimal;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -36,16 +36,15 @@ import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.api.PluginProperties;
 import org.killbill.billing.plugin.avatax.client.AvaTaxClient;
 import org.killbill.billing.plugin.avatax.client.AvaTaxClientException;
-import org.killbill.billing.plugin.avatax.client.model.Address;
-import org.killbill.billing.plugin.avatax.client.model.CommonResponse;
-import org.killbill.billing.plugin.avatax.client.model.DetailLevel;
+import org.killbill.billing.plugin.avatax.client.model.AddressLocationInfo;
+import org.killbill.billing.plugin.avatax.client.model.AddressesModel;
+import org.killbill.billing.plugin.avatax.client.model.CreateTransactionModel;
 import org.killbill.billing.plugin.avatax.client.model.DocType;
-import org.killbill.billing.plugin.avatax.client.model.GetTaxRequest;
-import org.killbill.billing.plugin.avatax.client.model.GetTaxResult;
-import org.killbill.billing.plugin.avatax.client.model.Line;
-import org.killbill.billing.plugin.avatax.client.model.TaxDetail;
-import org.killbill.billing.plugin.avatax.client.model.TaxLine;
-import org.killbill.billing.plugin.avatax.client.model.TaxOverrideDef;
+import org.killbill.billing.plugin.avatax.client.model.LineItemModel;
+import org.killbill.billing.plugin.avatax.client.model.TaxOverrideModel;
+import org.killbill.billing.plugin.avatax.client.model.TransactionLineDetailModel;
+import org.killbill.billing.plugin.avatax.client.model.TransactionLineModel;
+import org.killbill.billing.plugin.avatax.client.model.TransactionModel;
 import org.killbill.billing.plugin.avatax.core.AvaTaxConfigurationHandler;
 import org.killbill.billing.plugin.avatax.dao.AvaTaxDao;
 import org.killbill.clock.Clock;
@@ -53,7 +52,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
@@ -90,36 +88,33 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
         final String companyCode = avaTaxClient.getCompanyCode();
         final boolean shouldCommitDocuments = !dryRun && avaTaxClient.shouldCommitDocuments();
 
-        final GetTaxRequest taxRequest = toTaxRequest(companyCode, account, invoice, taxableItems.values(), adjustmentItems, originalInvoiceReferenceCode, !shouldCommitDocuments, pluginProperties, utcToday);
+        final CreateTransactionModel taxRequest = toTaxRequest(companyCode, account, invoice, taxableItems.values(), adjustmentItems, originalInvoiceReferenceCode, !shouldCommitDocuments, pluginProperties, utcToday);
         logger.info("GetTaxRequest: {}", taxRequest.simplifiedToString());
 
-        final GetTaxResult taxResult = avaTaxClient.getTax(taxRequest);
+        final TransactionModel taxResult = avaTaxClient.getTax(taxRequest);
         dao.addResponse(account.getId(), invoice.getId(), kbInvoiceItems, taxResult, clock.getUTCNow(), kbTenantId);
 
         // Align both log lines for readability
         logger.info(" GetTaxResult: {}", taxResult.simplifiedToString());
 
-        if (!CommonResponse.SeverityLevel.Success.equals(taxResult.ResultCode)) {
-            logger.warn("Unsuccessful GetTax request: {}", Arrays.toString(taxResult.Messages));
-            return ImmutableList.<InvoiceItem>of();
-        } else if (taxResult.TaxLines == null || taxResult.TaxLines.length == 0) {
+        if (taxResult.lines == null || taxResult.lines.length == 0) {
             logger.info("Nothing to tax for taxable items: {}", kbInvoiceItems.keySet());
             return ImmutableList.<InvoiceItem>of();
         }
 
         final Collection<InvoiceItem> invoiceItems = new LinkedList<InvoiceItem>();
-        for (final TaxLine taxLine : taxResult.TaxLines) {
+        for (final TransactionLineModel transactionLineModel : taxResult.lines) {
             // See convention in toLine() below
-            final UUID invoiceItemId = UUID.fromString(taxLine.LineNo);
-            invoiceItems.addAll(toInvoiceItems(newInvoice.getId(), taxableItems.get(invoiceItemId), taxLine, utcToday));
+            final UUID invoiceItemId = UUID.fromString(transactionLineModel.lineNumber);
+            invoiceItems.addAll(toInvoiceItems(newInvoice.getId(), taxableItems.get(invoiceItemId), transactionLineModel, utcToday));
         }
 
         return invoiceItems;
     }
 
-    private Collection<InvoiceItem> toInvoiceItems(final UUID invoiceId, final InvoiceItem taxableItem, final TaxLine taxLine, final LocalDate utcToday) {
-        if (taxLine.TaxDetails == null || taxLine.TaxDetails.length == 0) {
-            final InvoiceItem taxItem = buildTaxItem(taxableItem, invoiceId, utcToday, BigDecimal.valueOf(taxLine.Tax), "Tax");
+    private Collection<InvoiceItem> toInvoiceItems(final UUID invoiceId, final InvoiceItem taxableItem, final TransactionLineModel transactionLineModel, final LocalDate utcToday) {
+        if (transactionLineModel.details == null || transactionLineModel.details.length == 0) {
+            final InvoiceItem taxItem = buildTaxItem(taxableItem, invoiceId, utcToday, BigDecimal.valueOf(transactionLineModel.tax), "Tax");
             if (taxItem == null) {
                 return ImmutableList.<InvoiceItem>of();
             } else {
@@ -127,9 +122,9 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
             }
         } else {
             final Collection<InvoiceItem> invoiceItems = new LinkedList<InvoiceItem>();
-            for (final TaxDetail taxDetail : taxLine.TaxDetails) {
-                final String description = MoreObjects.firstNonNull(taxDetail.TaxName, MoreObjects.firstNonNull(taxDetail.JurisName, "Tax"));
-                final InvoiceItem taxItem = buildTaxItem(taxableItem, invoiceId, utcToday, BigDecimal.valueOf(taxDetail.Tax), description);
+            for (final TransactionLineDetailModel transactionLineDetailModel : transactionLineModel.details) {
+                final String description = MoreObjects.firstNonNull(transactionLineDetailModel.taxName, MoreObjects.firstNonNull(transactionLineDetailModel.taxName, "Tax"));
+                final InvoiceItem taxItem = buildTaxItem(taxableItem, invoiceId, utcToday, BigDecimal.valueOf(transactionLineDetailModel.tax), description);
                 if (taxItem != null) {
                     invoiceItems.add(taxItem);
                 }
@@ -158,15 +153,15 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
      * @param utcToday                     today's date
      * @return GetTaxRequest object
      */
-    private GetTaxRequest toTaxRequest(final String companyCode,
-                                       final Account account,
-                                       final Invoice invoice,
-                                       final Collection<InvoiceItem> taxableItems,
-                                       @Nullable final Map<UUID, Collection<InvoiceItem>> adjustmentItems,
-                                       @Nullable final String originalInvoiceReferenceCode,
-                                       final boolean dryRun,
-                                       final Iterable<PluginProperty> pluginProperties,
-                                       final LocalDate utcToday) {
+    private CreateTransactionModel toTaxRequest(final String companyCode,
+                                                final Account account,
+                                                final Invoice invoice,
+                                                final Collection<InvoiceItem> taxableItems,
+                                                @Nullable final Map<UUID, Collection<InvoiceItem>> adjustmentItems,
+                                                @Nullable final String originalInvoiceReferenceCode,
+                                                final boolean dryRun,
+                                                final Iterable<PluginProperty> pluginProperties,
+                                                final LocalDate utcToday) {
         Preconditions.checkState((originalInvoiceReferenceCode == null && (adjustmentItems == null || adjustmentItems.isEmpty())) ||
                                  (originalInvoiceReferenceCode != null && (adjustmentItems != null && !adjustmentItems.isEmpty())),
                                  "Invalid combination of originalInvoiceReferenceCode %s and adjustments %s", originalInvoiceReferenceCode, adjustmentItems);
@@ -174,61 +169,58 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
         Preconditions.checkState((adjustmentItems == null || adjustmentItems.isEmpty()) || adjustmentItems.size() == taxableItems.size(),
                                  "Invalid number of adjustments %s for taxable items %s", adjustmentItems, taxableItems);
 
-        final GetTaxRequest taxRequest = new GetTaxRequest();
+        final CreateTransactionModel taxRequest = new CreateTransactionModel();
 
         // The DocCode needs to be unique to be able to support multiple returns for the same invoice
         // Note: for certification, the invoice id needs to be part of the DocCode (we cannot use the invoice number, as it may not be known yet)
         // Also, DocCode length must be between 1 and 50 characters
-        taxRequest.DocCode = String.format("%s_%s", invoice.getId(), UUID.randomUUID().toString().substring(0, 12));
+        taxRequest.code = String.format("%s_%s", invoice.getId(), UUID.randomUUID().toString().substring(0, 12));
         // For returns, refers to the DocCode of the original invoice
-        taxRequest.ReferenceCode = originalInvoiceReferenceCode;
+        taxRequest.referenceCode = originalInvoiceReferenceCode;
         // AvaTax makes no direct association to the original invoice. We overload this field to keep a mapping with the original invoice.
-        taxRequest.PurchaseOrderNo = invoice.getId().toString();
+        taxRequest.purchaseOrderNo = invoice.getId().toString();
         // We want to report the return in the period in which it was processed, but it may have calculated tax in a previous period (which had different tax rates).
         // To handle this, we send the DocDate as the date of return processing, and use TaxOverride.TaxDate to send the date of the original invoice.
-        taxRequest.DocDate = utcToday.toDate();
-        taxRequest.CurrencyCode = invoice.getCurrency().name();
+        taxRequest.date = utcToday.toDate();
+        taxRequest.currencyCode = invoice.getCurrency().name();
 
         if (dryRun) {
             // This is a temporary document type and is not saved in tax history
-            taxRequest.DocType = originalInvoiceReferenceCode == null ? DocType.SalesOrder : DocType.ReturnOrder;
-            taxRequest.Commit = false;
+            taxRequest.type = originalInvoiceReferenceCode == null ? DocType.SalesOrder : DocType.ReturnOrder;
+            taxRequest.commit = false;
         } else {
             // The document is a permanent invoice; document and tax calculation results are saved in the tax history
-            taxRequest.DocType = originalInvoiceReferenceCode == null ? DocType.SalesInvoice : DocType.ReturnInvoice;
+            taxRequest.type = originalInvoiceReferenceCode == null ? DocType.SalesInvoice : DocType.ReturnInvoice;
             // Commit the invoice in AvaTax
-            taxRequest.Commit = true;
+            taxRequest.commit = true;
         }
 
-        taxRequest.CustomerCode = MoreObjects.firstNonNull(account.getExternalKey(), account.getId()).toString();
-        taxRequest.Addresses = new Address[]{toAddress(account)};
-        taxRequest.Lines = new Line[taxableItems.size()];
+        taxRequest.customerCode = MoreObjects.firstNonNull(account.getExternalKey(), account.getId()).toString();
+        taxRequest.addresses = toAddress(account);
+        taxRequest.lines = new LineItemModel[taxableItems.size()];
 
         // Create the individual line items
         final Iterator<InvoiceItem> taxableItemsIterator = taxableItems.iterator();
         int i = 0;
         while (taxableItemsIterator.hasNext()) {
             final InvoiceItem taxableItem = taxableItemsIterator.next();
-            taxRequest.Lines[i] = toLine(invoice, taxableItem, adjustmentItems == null ? null : adjustmentItems.get(taxableItem.getId()), taxRequest.Addresses[0].AddressCode, pluginProperties);
+            taxRequest.lines[i] = toLine(invoice, taxableItem, adjustmentItems == null ? null : adjustmentItems.get(taxableItem.getId()), null, pluginProperties);
             i++;
         }
 
         // Done at the line item level
-        taxRequest.TaxOverride = null;
+        taxRequest.taxOverride = null;
 
-        taxRequest.CompanyCode = PluginProperties.getValue(PROPERTY_COMPANY_CODE, companyCode, pluginProperties);
-        taxRequest.DetailLevel = DetailLevel.Tax;
-        taxRequest.Client = CLIENT_NAME;
+        taxRequest.companyCode = PluginProperties.getValue(PROPERTY_COMPANY_CODE, companyCode, pluginProperties);
 
-        taxRequest.CustomerUsageType = PluginProperties.findPluginPropertyValue(CUSTOMER_USAGE_TYPE, pluginProperties);
+        taxRequest.entityUseCode = PluginProperties.findPluginPropertyValue(CUSTOMER_USAGE_TYPE, pluginProperties);
 
         // Nice-to-have (via plugin properties or tags?)
-        taxRequest.ExemptionNo = null;
-        taxRequest.Discount = BigDecimal.ZERO;
+        taxRequest.exemptionNo = null;
+        taxRequest.discount = BigDecimal.ZERO;
         // Required for VAT
-        taxRequest.BusinessIdentificationNo = null;
-        taxRequest.PaymentDate = null;
-        taxRequest.PosLaneCode = null;
+        taxRequest.businessIdentificationNo = null;
+        taxRequest.posLaneCode = null;
 
         return taxRequest;
     }
@@ -248,29 +240,30 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
      * @param locationCode    associated location from the Addresses field
      * @return Line object
      */
-    private Line toLine(final Invoice invoice, final InvoiceItem taxableItem, @Nullable final Iterable<InvoiceItem> adjustmentItems, final String locationCode, final Iterable<PluginProperty> pluginProperties) {
-        final Line line = new Line();
-        line.LineNo = taxableItem.getId().toString();
-        line.DestinationCode = locationCode;
-        line.OriginCode = locationCode;
+    private LineItemModel toLine(final Invoice invoice, final InvoiceItem taxableItem, @Nullable final Iterable<InvoiceItem> adjustmentItems, final String locationCode, final Iterable<PluginProperty> pluginProperties) {
+        final LineItemModel lineItemModel = new LineItemModel();
+        lineItemModel.number = taxableItem.getId().toString();
+        lineItemModel.addresses = new AddressesModel();
+        lineItemModel.addresses.singleLocation = new AddressLocationInfo();
+        lineItemModel.addresses.singleLocation.locationCode = locationCode;
         // SKU
         if (taxableItem.getUsageName() == null) {
             if (taxableItem.getPhaseName() == null) {
                 if (taxableItem.getPlanName() == null) {
-                    line.ItemCode = taxableItem.getDescription();
+                    lineItemModel.itemCode = taxableItem.getDescription();
                 } else {
-                    line.ItemCode = taxableItem.getPlanName();
+                    lineItemModel.itemCode = taxableItem.getPlanName();
                 }
             } else {
-                line.ItemCode = taxableItem.getPhaseName();
+                lineItemModel.itemCode = taxableItem.getPhaseName();
             }
         } else {
-            line.ItemCode = taxableItem.getUsageName();
+            lineItemModel.itemCode = taxableItem.getUsageName();
         }
-        line.Qty = BigDecimal.ONE;
-        line.Description = taxableItem.getDescription();
-        line.Ref1 = taxableItem.getId().toString();
-        line.Ref2 = taxableItem.getInvoiceId().toString();
+        lineItemModel.quantity = BigDecimal.ONE;
+        lineItemModel.description = taxableItem.getDescription();
+        lineItemModel.ref1 = taxableItem.getId().toString();
+        lineItemModel.ref2 = taxableItem.getInvoiceId().toString();
 
         // Compute the amount to tax or the amount to adjust
         final BigDecimal adjustmentAmount = sum(adjustmentItems);
@@ -278,45 +271,41 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
         Preconditions.checkState((adjustmentAmount.compareTo(BigDecimal.ZERO) == 0) ||
                                  (isReturnDocument && taxableItem.getAmount().compareTo(adjustmentAmount.negate()) >= 0),
                                  "Invalid adjustmentAmount %s for invoice item %s", adjustmentAmount, taxableItem);
-        line.Amount = isReturnDocument ? adjustmentAmount : taxableItem.getAmount();
+        lineItemModel.amount = isReturnDocument ? adjustmentAmount : taxableItem.getAmount();
         if (isReturnDocument) {
             // Adjustment
-            line.TaxOverride = new TaxOverrideDef();
-            line.TaxOverride.TaxOverrideType = "TaxDate";
+            lineItemModel.taxOverride = new TaxOverrideModel();
+            lineItemModel.taxOverride.type = "TaxDate";
             // Note: we could also look-up the audit logs
-            line.TaxOverride.Reason = MoreObjects.firstNonNull(adjustmentItems.iterator().next().getDescription(), "Adjustment");
-            line.TaxOverride.TaxAmount = null;
-            line.TaxOverride.TaxDate = invoice.getInvoiceDate().toString();
+            lineItemModel.taxOverride.reason = MoreObjects.firstNonNull(adjustmentItems.iterator().next().getDescription(), "Adjustment");
+            lineItemModel.taxOverride.taxAmount = null;
+            lineItemModel.taxOverride.taxDate = invoice.getInvoiceDate().toString();
         }
 
-        line.TaxCode = PluginProperties.findPluginPropertyValue(String.format("%s_%s", TAX_CODE, taxableItem.getId()), pluginProperties);
+        lineItemModel.taxCode = PluginProperties.findPluginPropertyValue(String.format("%s_%s", TAX_CODE, taxableItem.getId()), pluginProperties);
 
         // Nice-to-have (via plugin properties or tags?)
-        line.CustomerUsageType = null;
-        line.Discounted = false;
-        line.TaxIncluded = false;
+        lineItemModel.customerUsageType = null;
+        lineItemModel.discounted = false;
+        lineItemModel.taxIncluded = false;
         // Required for VAT
-        line.BusinessIdentificationNo = null;
+        lineItemModel.businessIdentificationNo = null;
 
-        return line;
+        return lineItemModel;
     }
 
-    private Address toAddress(final Account account) {
-        final Address address = new Address();
-        address.AddressCode = account.getId().toString();
-        address.Line1 = account.getAddress1();
-        address.Line2 = account.getAddress2();
-        address.Line3 = null;
-        address.City = account.getCity();
-        address.Region = account.getStateOrProvince();
-        address.PostalCode = account.getPostalCode();
-        address.Country = account.getCountry();
+    private AddressesModel toAddress(final Account account) {
+        final AddressLocationInfo addressLocationInfo = new AddressLocationInfo();
+        addressLocationInfo.line1 = account.getAddress1();
+        addressLocationInfo.line2 = account.getAddress2();
+        addressLocationInfo.city = account.getCity();
+        addressLocationInfo.region = account.getStateOrProvince();
+        addressLocationInfo.postalCode = account.getPostalCode();
+        addressLocationInfo.country = account.getCountry();
 
-        // N/A
-        address.Latitude = null;
-        address.Longitude = null;
-        address.TaxRegionId = null;
+        final AddressesModel addressesModel = new AddressesModel();
+        addressesModel.shipTo = addressLocationInfo;
 
-        return address;
+        return addressesModel;
     }
 }

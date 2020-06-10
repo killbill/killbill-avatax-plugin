@@ -1,6 +1,7 @@
 /*
- * Copyright 2015 Groupon, Inc
- * Copyright 2015 The Billing Project, LLC
+ * Copyright 2015-2020 Groupon, Inc
+ * Copyright 2020-2020 Equinix, Inc
+ * Copyright 2015-2020 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -17,11 +18,9 @@
 
 package org.killbill.billing.plugin.avatax;
 
-import java.text.SimpleDateFormat;
-
+import org.killbill.billing.plugin.avatax.client.ClientUtils;
 import org.testng.annotations.BeforeClass;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public abstract class AvaTaxTestBase {
@@ -30,8 +29,6 @@ public abstract class AvaTaxTestBase {
 
     @BeforeClass(groups = "fast")
     public void beforeClass() throws Exception {
-        mapper = new ObjectMapper();
-        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        mapper.setDateFormat(new SimpleDateFormat("yyyy-MM-dd"));
+        mapper = ClientUtils.createObjectMapper();
     }
 }

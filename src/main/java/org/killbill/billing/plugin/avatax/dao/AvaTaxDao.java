@@ -1,6 +1,7 @@
 /*
- * Copyright 2015 Groupon, Inc
- * Copyright 2015 The Billing Project, LLC
+ * Copyright 2015-2020 Groupon, Inc
+ * Copyright 2020-2020 Equinix, Inc
+ * Copyright 2015-2020 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -38,7 +39,7 @@ import org.jooq.TransactionalRunnable;
 import org.jooq.impl.DSL;
 import org.killbill.billing.invoice.api.InvoiceItem;
 import org.killbill.billing.plugin.avatax.client.model.CommonResponse;
-import org.killbill.billing.plugin.avatax.client.model.GetTaxResult;
+import org.killbill.billing.plugin.avatax.client.model.TransactionModel;
 import org.killbill.billing.plugin.avatax.client.model.TaxRateResult;
 import org.killbill.billing.plugin.avatax.dao.gen.tables.records.AvataxResponsesRecord;
 import org.killbill.billing.plugin.avatax.dao.gen.tables.records.AvataxTaxCodesRecord;
@@ -172,7 +173,7 @@ public class AvaTaxDao extends PluginDao {
     public void addResponse(final UUID kbAccountId,
                             final UUID kbInvoiceId,
                             final Map<UUID, Iterable<InvoiceItem>> kbInvoiceItems,
-                            final GetTaxResult taxResult,
+                            final TransactionModel taxResult,
                             final DateTime utcNow,
                             final UUID kbTenantId) throws SQLException {
         execute(dataSource.getConnection(),
@@ -205,21 +206,21 @@ public class AvaTaxDao extends PluginDao {
                            .values(kbAccountId.toString(),
                                    kbInvoiceId.toString(),
                                    kbInvoiceItemsIdsAsString(kbInvoiceItems),
-                                   taxResult.DocCode,
-                                   toTimestamp(taxResult.DocDate),
-                                   toTimestamp(taxResult.Timestamp),
-                                   BigDecimal.valueOf(taxResult.TotalAmount),
-                                   BigDecimal.valueOf(taxResult.TotalDiscount),
-                                   BigDecimal.valueOf(taxResult.TotalExemption),
-                                   BigDecimal.valueOf(taxResult.TotalTaxable),
-                                   BigDecimal.valueOf(taxResult.TotalTax),
-                                   BigDecimal.valueOf(taxResult.TotalTaxCalculated),
-                                   toTimestamp(taxResult.TaxDate),
-                                   asString(taxResult.TaxLines),
-                                   asString(taxResult.TaxSummary),
-                                   asString(taxResult.TaxAddresses),
-                                   taxResult.ResultCode == null ? null : taxResult.ResultCode.name(),
-                                   asString(taxResult.Messages),
+                                   taxResult.code,
+                                   toTimestamp(taxResult.date),
+                                   null,
+                                   BigDecimal.valueOf(taxResult.totalAmount),
+                                   BigDecimal.valueOf(taxResult.totalDiscount),
+                                   BigDecimal.valueOf(taxResult.totalExempt),
+                                   BigDecimal.valueOf(taxResult.totalTaxable),
+                                   BigDecimal.valueOf(taxResult.totalTax),
+                                   BigDecimal.valueOf(taxResult.totalTaxCalculated),
+                                   toTimestamp(taxResult.taxDate),
+                                   asString(taxResult.lines),
+                                   asString(taxResult.summary),
+                                   asString(taxResult.addresses),
+                                   null,
+                                   asString(taxResult.messages),
                                    null,
                                    toTimestamp(utcNow),
                                    kbTenantId.toString())

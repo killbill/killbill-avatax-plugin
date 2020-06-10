@@ -1,6 +1,7 @@
 /*
- * Copyright 2015 Groupon, Inc
- * Copyright 2015 The Billing Project, LLC
+ * Copyright 2015-2020 Groupon, Inc
+ * Copyright 2020-2020 Equinix, Inc
+ * Copyright 2015-2020 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -17,7 +18,8 @@
 
 package org.killbill.billing.plugin.avatax.client.model;
 
-public class JurisTaxRate {
+// https://developer.avalara.com/api-reference/avatax/rest/v2/models/RateModel/
+public class RateModel {
 
     public double rate;
     public String name;
@@ -25,12 +27,11 @@ public class JurisTaxRate {
 
     @Override
     public String toString() {
-        final StringBuilder sb = new StringBuilder("JurisTaxRate{");
-        sb.append("rate=").append(rate);
-        sb.append(", name='").append(name).append('\'');
-        sb.append(", type='").append(type).append('\'');
-        sb.append('}');
-        return sb.toString();
+        return "RateModel{" +
+               "rate=" + rate +
+               ", name='" + name + '\'' +
+               ", type='" + type + '\'' +
+               '}';
     }
 
     @Override
@@ -42,19 +43,15 @@ public class JurisTaxRate {
             return false;
         }
 
-        final JurisTaxRate that = (JurisTaxRate) o;
+        final RateModel rateModel = (RateModel) o;
 
-        if (Double.compare(that.rate, rate) != 0) {
+        if (Double.compare(rateModel.rate, rate) != 0) {
             return false;
         }
-        if (name != null ? !name.equals(that.name) : that.name != null) {
+        if (name != null ? !name.equals(rateModel.name) : rateModel.name != null) {
             return false;
         }
-        if (type != null ? !type.equals(that.type) : that.type != null) {
-            return false;
-        }
-
-        return true;
+        return type != null ? type.equals(rateModel.type) : rateModel.type == null;
     }
 
     @Override

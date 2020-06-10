@@ -34,7 +34,7 @@ import org.killbill.billing.invoice.api.InvoiceItem;
 import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.api.PluginProperties;
 import org.killbill.billing.plugin.avatax.client.AvaTaxClientException;
-import org.killbill.billing.plugin.avatax.client.model.JurisTaxRate;
+import org.killbill.billing.plugin.avatax.client.model.RateModel;
 import org.killbill.billing.plugin.avatax.client.model.TaxRateResult;
 import org.killbill.billing.plugin.avatax.core.TaxRatesConfigurationHandler;
 import org.killbill.billing.plugin.avatax.dao.AvaTaxDao;
@@ -116,13 +116,13 @@ public class TaxRatesTaxCalculator extends AvaTaxTaxCalculatorBase {
                 newTaxItems.add(taxItem);
             }
         } else {
-            for (final JurisTaxRate jurisTaxRate : taxRates.rates) {
-                if (rateTypes.isEmpty() || rateTypes.contains(jurisTaxRate.type)) {
+            for (final RateModel rateModel : taxRates.rates) {
+                if (rateTypes.isEmpty() || rateTypes.contains(rateModel.type)) {
                     final InvoiceItem taxItem = buildTaxItem(taxableItem,
                                                              newInvoice.getId(),
                                                              utcToday,
-                                                             BigDecimal.valueOf(jurisTaxRate.rate).multiply(netItemAmount),
-                                                             MoreObjects.firstNonNull(jurisTaxRate.name, "Tax"));
+                                                             BigDecimal.valueOf(rateModel.rate).multiply(netItemAmount),
+                                                             MoreObjects.firstNonNull(rateModel.name, "Tax"));
                     if (taxItem != null) {
                         newTaxItems.add(taxItem);
                     }

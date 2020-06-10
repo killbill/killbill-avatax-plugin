@@ -40,25 +40,13 @@ public class TaxRatesClient extends HttpClient {
 
     public static final String KILL_BILL_CLIENT_HEADER = "Kill Bill; 2.0; killbill-avatax; 2.0; NA";
 
-    private final String authHeader;
-
     public TaxRatesClient(final Properties properties) throws GeneralSecurityException {
-        this(properties.getProperty(AvaTaxActivator.TAX_RATES_API_PROPERTY_PREFIX + "url"),
-             properties.getProperty(AvaTaxActivator.TAX_RATES_API_PROPERTY_PREFIX + "accountId"),
-             properties.getProperty(AvaTaxActivator.TAX_RATES_API_PROPERTY_PREFIX + "licenseKey"),
-             properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "proxyHost"),
-             ClientUtils.getIntegerProperty(properties, "proxyPort"),
-             ClientUtils.getBooleanProperty(properties, "strictSSL"));
-    }
-
-    private TaxRatesClient(final String url,
-                           final String accountId,
-                           final String licenseKey,
-                           final String proxyHost,
-                           final Integer proxyPort,
-                           final Boolean strictSSL) throws GeneralSecurityException {
-        super(url, null, null, proxyHost, proxyPort, strictSSL);
-        this.authHeader = String.format("Basic %s", BaseEncoding.base64().encode(String.format("%s:%s", accountId, licenseKey).getBytes(StandardCharsets.UTF_8)));
+        super(properties.getProperty(AvaTaxActivator.TAX_RATES_API_PROPERTY_PREFIX + "url"),
+              properties.getProperty(AvaTaxActivator.TAX_RATES_API_PROPERTY_PREFIX + "accountId"),
+              properties.getProperty(AvaTaxActivator.TAX_RATES_API_PROPERTY_PREFIX + "licenseKey"),
+              properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "proxyHost"),
+              ClientUtils.getIntegerProperty(properties, "proxyPort"),
+              ClientUtils.getBooleanProperty(properties, "strictSSL"));
     }
 
     public boolean isConfigured() {
@@ -69,12 +57,11 @@ public class TaxRatesClient extends HttpClient {
         try {
             // See https://developer.avalara.com/api-reference/avatax/rest/v2/methods/Free/TaxRatesByPostalCode/
             return doCall(GET,
-                          url + "/bypostalcode",
+                          url + "/taxrates/bypostalcode",
                           null,
                           ImmutableMap.<String, String>of("postalCode", postal,
                                                           "country", country),
-                          ImmutableMap.<String, String>of("X-Avalara-Client", KILL_BILL_CLIENT_HEADER,
-                                                          "Authorization", authHeader),
+                          ImmutableMap.<String, String>of("X-Avalara-Client", KILL_BILL_CLIENT_HEADER),
                           TaxRateResult.class,
                           ResponseFormat.JSON);
         } catch (final InterruptedException e) {
@@ -103,11 +90,10 @@ public class TaxRatesClient extends HttpClient {
         try {
             // See https://developer.avalara.com/api-reference/avatax/rest/v2/methods/Free/TaxRatesByAddress/
             return doCall(GET,
-                          url + "/byaddress",
+                          url + "/taxrates/byaddress",
                           null,
                           queryParams.build(),
-                          ImmutableMap.<String, String>of("X-Avalara-Client", KILL_BILL_CLIENT_HEADER,
-                                                          "Authorization", authHeader),
+                          ImmutableMap.<String, String>of("X-Avalara-Client", KILL_BILL_CLIENT_HEADER),
                           TaxRateResult.class,
                           ResponseFormat.JSON);
         } catch (final InterruptedException e) {

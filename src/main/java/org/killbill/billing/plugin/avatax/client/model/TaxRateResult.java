@@ -1,6 +1,7 @@
 /*
- * Copyright 2015 Groupon, Inc
- * Copyright 2015 The Billing Project, LLC
+ * Copyright 2015-2020 Groupon, Inc
+ * Copyright 2020 Equinix, Inc
+ * Copyright 2015-2020 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -19,10 +20,11 @@ package org.killbill.billing.plugin.avatax.client.model;
 
 import java.util.List;
 
+// https://developer.avalara.com/api-reference/avatax/rest/v2/models/TaxRateModel/
 public class TaxRateResult {
 
     public double totalRate;
-    public List<JurisTaxRate> rates;
+    public List<RateModel> rates;
 
     public String simplifiedToString() {
         final StringBuilder sb = new StringBuilder();
@@ -30,7 +32,7 @@ public class TaxRateResult {
         if (rates != null) {
             sb.append(", rates=[");
             boolean first = true;
-            for (final JurisTaxRate rate : rates) {
+            for (final RateModel rate : rates) {
                 if (first) {
                     first = false;
                 } else {
@@ -45,11 +47,10 @@ public class TaxRateResult {
 
     @Override
     public String toString() {
-        final StringBuilder sb = new StringBuilder("TaxRateResult{");
-        sb.append("totalRate=").append(totalRate);
-        sb.append(", rates=").append(rates);
-        sb.append('}');
-        return sb.toString();
+        return "TaxRateResult{" +
+               "totalRate=" + totalRate +
+               ", rates=" + rates +
+               '}';
     }
 
     @Override
@@ -66,11 +67,7 @@ public class TaxRateResult {
         if (Double.compare(that.totalRate, totalRate) != 0) {
             return false;
         }
-        if (rates != null ? !rates.equals(that.rates) : that.rates != null) {
-            return false;
-        }
-
-        return true;
+        return rates != null ? rates.equals(that.rates) : that.rates == null;
     }
 
     @Override

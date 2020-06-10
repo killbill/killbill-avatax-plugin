@@ -32,8 +32,8 @@ Configuration
 
 The following properties are required:
 
-* `org.killbill.billing.plugin.avatax.url`: AvaTax endpoint (e.g. https://development.avalara.net)
-* `org.killbill.billing.plugin.avatax.accountNumber`: your AvaTax account number
+* `org.killbill.billing.plugin.avatax.url`: AvaTax endpoint (e.g. https://sandbox-rest.avatax.com/api/v2)
+* `org.killbill.billing.plugin.avatax.accountId`: your AvaTax account number
 * `org.killbill.billing.plugin.avatax.licenseKey`: your license key
 
 The following properties are optional:
@@ -47,7 +47,7 @@ The TaxRates API is a free-to-use, no cost option for estimating sales tax rates
 
 The following properties are required:
 
-* `org.killbill.billing.plugin.avatax.taxratesapi.url`: Tax Rates API endpoint (e.g. https://sandbox-rest.avatax.com/api/v2/taxrates)
+* `org.killbill.billing.plugin.avatax.taxratesapi.url`: Tax Rates API endpoint (e.g. https://sandbox-rest.avatax.com/api/v2)
 * `org.killbill.billing.plugin.avatax.taxratesapi.accountId`: your account ID
 * `org.killbill.billing.plugin.avatax.taxratesapi.licenseKey`: your license Key
 

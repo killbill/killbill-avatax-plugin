@@ -21,7 +21,7 @@ package org.killbill.billing.plugin.avatax.client.model;
 // https://developer.avalara.com/api-reference/avatax/rest/v2/models/TransactionLineDetailModel/
 public class TransactionLineDetailModel {
 
-    public int id;
+    public long id;
     public double exemptAmount;
     public double nonTaxableAmount;
     public double rate;
@@ -78,7 +78,7 @@ public class TransactionLineDetailModel {
     public int hashCode() {
         int result;
         long temp;
-        result = id;
+        result = (int) (id ^ (id >>> 32));
         temp = Double.doubleToLongBits(exemptAmount);
         result = 31 * result + (int) (temp ^ (temp >>> 32));
         temp = Double.doubleToLongBits(nonTaxableAmount);

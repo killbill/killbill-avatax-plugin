@@ -74,11 +74,11 @@ public class AvaTaxClient extends HttpClient {
         return ClientUtils.createObjectMapper();
     }
 
-    public TransactionModel getTax(final CreateTransactionModel taxRequest) throws AvaTaxClientException {
+    public TransactionModel createTransaction(final CreateTransactionModel createTransactionModel) throws AvaTaxClientException {
         try {
             return doCall(POST,
                           url + "/transactions/create",
-                          serialize(taxRequest),
+                          serialize(createTransactionModel),
                           DEFAULT_OPTIONS,
                           ImmutableMap.<String, String>of("X-Avalara-Client", KILL_BILL_CLIENT_HEADER),
                           TransactionModel.class,

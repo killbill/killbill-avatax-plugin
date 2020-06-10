@@ -91,7 +91,7 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
         final CreateTransactionModel taxRequest = toTaxRequest(companyCode, account, invoice, taxableItems.values(), adjustmentItems, originalInvoiceReferenceCode, !shouldCommitDocuments, pluginProperties, utcToday);
         logger.info("GetTaxRequest: {}", taxRequest.simplifiedToString());
 
-        final TransactionModel taxResult = avaTaxClient.getTax(taxRequest);
+        final TransactionModel taxResult = avaTaxClient.createTransaction(taxRequest);
         dao.addResponse(account.getId(), invoice.getId(), kbInvoiceItems, taxResult, clock.getUTCNow(), kbTenantId);
 
         // Align both log lines for readability

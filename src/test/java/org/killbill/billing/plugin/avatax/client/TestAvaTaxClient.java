@@ -32,16 +32,18 @@ import org.killbill.billing.plugin.avatax.client.model.TransactionModel;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+// To debug the request: -Dorg.slf4j.simpleLogger.log.org=DEBUG
 public class TestAvaTaxClient extends AvaTaxRemoteTestBase {
 
     @Test(groups = "integration")
-    public void testGetTax() throws Exception {
+    public void testCreateTransaction() throws Exception {
         final CreateTransactionModel createTransactionModel = new CreateTransactionModel();
         createTransactionModel.customerCode = UUID.randomUUID().toString();
         createTransactionModel.date = new DateTime("2014-05-01").toDate();
         createTransactionModel.companyCode = companyCode;
         createTransactionModel.code = UUID.randomUUID().toString();
         createTransactionModel.currencyCode = "USD";
+        createTransactionModel.debugLevel = "Diagnostic";
         // To see it in the UI
         createTransactionModel.type = DocType.SalesInvoice;
         createTransactionModel.commit = true;
@@ -62,7 +64,17 @@ public class TestAvaTaxClient extends AvaTaxRemoteTestBase {
         lineItemModel.description = UUID.randomUUID().toString();
         createTransactionModel.lines = new LineItemModel[]{lineItemModel};
 
-        final TransactionModel result = client.getTax(createTransactionModel);
-        Assert.assertNotNull(result.messages);
+        final TransactionModel result = client.createTransaction(createTransactionModel);
+        Assert.assertNotEquals(result.id, 0);
+        Assert.assertNotNull(result.code);
+        Assert.assertNotEquals(result.companyId, 0);
+        Assert.assertEquals(result.status, "Committed");
+        Assert.assertEquals(result.type, "SalesInvoice");
+        Assert.assertEquals(result.lines.length, 1);
+        Assert.assertEquals(result.lines[0].details.length, 1);
+        Assert.assertEquals(result.addresses.length, 1);
+        Assert.assertEquals(result.summary.length, 1);
+        // Diagnostic level
+        Assert.assertTrue(result.messages.length > 1);
     }
 }

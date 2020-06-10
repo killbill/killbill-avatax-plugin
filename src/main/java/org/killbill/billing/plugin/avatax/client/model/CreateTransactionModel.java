@@ -45,6 +45,7 @@ public class CreateTransactionModel {
     public String posLaneCode;
     public String currencyCode;
     public String description;
+    public String debugLevel;
 
     public String simplifiedToString() {
         final StringBuilder sb = new StringBuilder();
@@ -90,6 +91,7 @@ public class CreateTransactionModel {
                ", posLaneCode='" + posLaneCode + '\'' +
                ", currencyCode='" + currencyCode + '\'' +
                ", description='" + description + '\'' +
+               ", debugLevel='" + debugLevel + '\'' +
                '}';
     }
 
@@ -156,7 +158,10 @@ public class CreateTransactionModel {
         if (currencyCode != null ? !currencyCode.equals(that.currencyCode) : that.currencyCode != null) {
             return false;
         }
-        return description != null ? description.equals(that.description) : that.description == null;
+        if (description != null ? !description.equals(that.description) : that.description != null) {
+            return false;
+        }
+        return debugLevel != null ? debugLevel.equals(that.debugLevel) : that.debugLevel == null;
     }
 
     @Override
@@ -179,6 +184,7 @@ public class CreateTransactionModel {
         result = 31 * result + (posLaneCode != null ? posLaneCode.hashCode() : 0);
         result = 31 * result + (currencyCode != null ? currencyCode.hashCode() : 0);
         result = 31 * result + (description != null ? description.hashCode() : 0);
+        result = 31 * result + (debugLevel != null ? debugLevel.hashCode() : 0);
         return result;
     }
 }

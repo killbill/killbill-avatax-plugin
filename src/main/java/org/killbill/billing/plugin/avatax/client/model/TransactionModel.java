@@ -26,8 +26,12 @@ import org.joda.time.DateTime;
 // https://developer.avalara.com/api-reference/avatax/rest/v2/models/TransactionModel/
 public class TransactionModel {
 
+    public long id;
     public String code;
+    public long companyId;
     public Date date;
+    public String status;
+    public String type;
     public Date taxDate;
     public double totalAmount;
     public double totalDiscount;
@@ -54,8 +58,12 @@ public class TransactionModel {
     @Override
     public String toString() {
         return "TransactionModel{" +
-               "code='" + code + '\'' +
+               "id=" + id +
+               ", code='" + code + '\'' +
+               ", companyId=" + companyId +
                ", date=" + date +
+               ", status='" + status + '\'' +
+               ", type='" + type + '\'' +
                ", taxDate=" + taxDate +
                ", totalAmount=" + totalAmount +
                ", totalDiscount=" + totalDiscount +
@@ -81,6 +89,12 @@ public class TransactionModel {
 
         final TransactionModel that = (TransactionModel) o;
 
+        if (id != that.id) {
+            return false;
+        }
+        if (companyId != that.companyId) {
+            return false;
+        }
         if (Double.compare(that.totalAmount, totalAmount) != 0) {
             return false;
         }
@@ -103,6 +117,12 @@ public class TransactionModel {
             return false;
         }
         if (date != null ? !date.equals(that.date) : that.date != null) {
+            return false;
+        }
+        if (status != null ? !status.equals(that.status) : that.status != null) {
+            return false;
+        }
+        if (type != null ? !type.equals(that.type) : that.type != null) {
             return false;
         }
         if (taxDate != null ? !taxDate.equals(that.taxDate) : that.taxDate != null) {
@@ -128,8 +148,12 @@ public class TransactionModel {
     public int hashCode() {
         int result;
         long temp;
-        result = code != null ? code.hashCode() : 0;
+        result = (int) (id ^ (id >>> 32));
+        result = 31 * result + (code != null ? code.hashCode() : 0);
+        result = 31 * result + (int) (companyId ^ (companyId >>> 32));
         result = 31 * result + (date != null ? date.hashCode() : 0);
+        result = 31 * result + (status != null ? status.hashCode() : 0);
+        result = 31 * result + (type != null ? type.hashCode() : 0);
         result = 31 * result + (taxDate != null ? taxDate.hashCode() : 0);
         temp = Double.doubleToLongBits(totalAmount);
         result = 31 * result + (int) (temp ^ (temp >>> 32));

@@ -60,10 +60,9 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
     public static final String PROPERTY_COMPANY_CODE = "companyCode";
     public static final String CUSTOMER_USAGE_TYPE = "customerUsageType";
     public static final String TAX_CODE = "taxCode";
+    public static final String LOCATION_CODE = "locationCode";
 
     private static final Logger logger = LoggerFactory.getLogger(AvaTaxTaxCalculator.class);
-
-    private static final String CLIENT_NAME = "KILLBILL";
 
     private final AvaTaxConfigurationHandler avaTaxConfigurationHandler;
 
@@ -89,27 +88,33 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
         final boolean shouldCommitDocuments = !dryRun && avaTaxClient.shouldCommitDocuments();
 
         final CreateTransactionModel taxRequest = toTaxRequest(companyCode, account, invoice, taxableItems.values(), adjustmentItems, originalInvoiceReferenceCode, !shouldCommitDocuments, pluginProperties, utcToday);
-        logger.info("GetTaxRequest: {}", taxRequest.simplifiedToString());
+        logger.info("CreateTransaction req: {}", taxRequest.simplifiedToString());
 
-        final TransactionModel taxResult = avaTaxClient.createTransaction(taxRequest);
-        dao.addResponse(account.getId(), invoice.getId(), kbInvoiceItems, taxResult, clock.getUTCNow(), kbTenantId);
+        try {
+            final TransactionModel taxResult = avaTaxClient.createTransaction(taxRequest);
+            dao.addResponse(account.getId(), invoice.getId(), kbInvoiceItems, taxResult, clock.getUTCNow(), kbTenantId);
+            logger.info("CreateTransaction res: {}", taxResult.simplifiedToString());
 
-        // Align both log lines for readability
-        logger.info(" GetTaxResult: {}", taxResult.simplifiedToString());
+            if (taxResult.lines == null || taxResult.lines.length == 0) {
+                logger.info("Nothing to tax for taxable items: {}", kbInvoiceItems.keySet());
+                return ImmutableList.<InvoiceItem>of();
+            }
 
-        if (taxResult.lines == null || taxResult.lines.length == 0) {
-            logger.info("Nothing to tax for taxable items: {}", kbInvoiceItems.keySet());
-            return ImmutableList.<InvoiceItem>of();
+            final Collection<InvoiceItem> invoiceItems = new LinkedList<InvoiceItem>();
+            for (final TransactionLineModel transactionLineModel : taxResult.lines) {
+                // See convention in toLine() below
+                final UUID invoiceItemId = UUID.fromString(transactionLineModel.lineNumber);
+                invoiceItems.addAll(toInvoiceItems(newInvoice.getId(), taxableItems.get(invoiceItemId), transactionLineModel, utcToday));
+            }
+
+            return invoiceItems;
+        } catch (final AvaTaxClientException e) {
+            if (e.getErrors() != null) {
+                dao.addResponse(account.getId(), invoice.getId(), kbInvoiceItems, e.getErrors(), clock.getUTCNow(), kbTenantId);
+                logger.warn("CreateTransaction res: {}", e.getErrors());
+            }
+            throw e;
         }
-
-        final Collection<InvoiceItem> invoiceItems = new LinkedList<InvoiceItem>();
-        for (final TransactionLineModel transactionLineModel : taxResult.lines) {
-            // See convention in toLine() below
-            final UUID invoiceItemId = UUID.fromString(transactionLineModel.lineNumber);
-            invoiceItems.addAll(toInvoiceItems(newInvoice.getId(), taxableItems.get(invoiceItemId), transactionLineModel, utcToday));
-        }
-
-        return invoiceItems;
     }
 
     private Collection<InvoiceItem> toInvoiceItems(final UUID invoiceId, final InvoiceItem taxableItem, final TransactionLineModel transactionLineModel, final LocalDate utcToday) {
@@ -177,8 +182,8 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
         taxRequest.code = String.format("%s_%s", invoice.getId(), UUID.randomUUID().toString().substring(0, 12));
         // For returns, refers to the DocCode of the original invoice
         taxRequest.referenceCode = originalInvoiceReferenceCode;
-        // AvaTax makes no direct association to the original invoice. We overload this field to keep a mapping with the original invoice.
-        taxRequest.purchaseOrderNo = invoice.getId().toString();
+        // We overload this field to keep a mapping with the Kill Bill invoice
+        taxRequest.description = invoice.getId().toString();
         // We want to report the return in the period in which it was processed, but it may have calculated tax in a previous period (which had different tax rates).
         // To handle this, we send the DocDate as the date of return processing, and use TaxOverride.TaxDate to send the date of the original invoice.
         taxRequest.date = utcToday.toDate();
@@ -208,19 +213,8 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
             i++;
         }
 
-        // Done at the line item level
-        taxRequest.taxOverride = null;
-
         taxRequest.companyCode = PluginProperties.getValue(PROPERTY_COMPANY_CODE, companyCode, pluginProperties);
-
         taxRequest.entityUseCode = PluginProperties.findPluginPropertyValue(CUSTOMER_USAGE_TYPE, pluginProperties);
-
-        // Nice-to-have (via plugin properties or tags?)
-        taxRequest.exemptionNo = null;
-        taxRequest.discount = BigDecimal.ZERO;
-        // Required for VAT
-        taxRequest.businessIdentificationNo = null;
-        taxRequest.posLaneCode = null;
 
         return taxRequest;
     }
@@ -243,9 +237,6 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
     private LineItemModel toLine(final Invoice invoice, final InvoiceItem taxableItem, @Nullable final Iterable<InvoiceItem> adjustmentItems, final String locationCode, final Iterable<PluginProperty> pluginProperties) {
         final LineItemModel lineItemModel = new LineItemModel();
         lineItemModel.number = taxableItem.getId().toString();
-        lineItemModel.addresses = new AddressesModel();
-        lineItemModel.addresses.singleLocation = new AddressLocationInfo();
-        lineItemModel.addresses.singleLocation.locationCode = locationCode;
         // SKU
         if (taxableItem.getUsageName() == null) {
             if (taxableItem.getPhaseName() == null) {
@@ -260,7 +251,7 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
         } else {
             lineItemModel.itemCode = taxableItem.getUsageName();
         }
-        lineItemModel.quantity = BigDecimal.ONE;
+        lineItemModel.quantity = new BigDecimal(MoreObjects.firstNonNull(taxableItem.getQuantity(), 1).toString());
         lineItemModel.description = taxableItem.getDescription();
         lineItemModel.ref1 = taxableItem.getId().toString();
         lineItemModel.ref2 = taxableItem.getInvoiceId().toString();
@@ -284,12 +275,12 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
 
         lineItemModel.taxCode = PluginProperties.findPluginPropertyValue(String.format("%s_%s", TAX_CODE, taxableItem.getId()), pluginProperties);
 
-        // Nice-to-have (via plugin properties or tags?)
-        lineItemModel.customerUsageType = null;
-        lineItemModel.discounted = false;
-        lineItemModel.taxIncluded = false;
-        // Required for VAT
-        lineItemModel.businessIdentificationNo = null;
+        final String lineItemLocationCode = PluginProperties.findPluginPropertyValue(String.format("%s_%s", LOCATION_CODE, taxableItem.getId()), pluginProperties);
+        if (lineItemLocationCode != null) {
+            lineItemModel.addresses = new AddressesModel();
+            lineItemModel.addresses.singleLocation = new AddressLocationInfo();
+            lineItemModel.addresses.singleLocation.locationCode = lineItemLocationCode;
+        }
 
         return lineItemModel;
     }
@@ -302,6 +293,13 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
         addressLocationInfo.region = account.getStateOrProvince();
         addressLocationInfo.postalCode = account.getPostalCode();
         addressLocationInfo.country = account.getCountry();
+
+        // You must provide either a valid postal code, line1 + city + region, or line1 + postal code
+        final boolean valid = addressLocationInfo.postalCode != null ||
+                              (addressLocationInfo.line1 != null && addressLocationInfo.city != null && addressLocationInfo.region != null);
+        if (!valid) {
+            return null;
+        }
 
         final AddressesModel addressesModel = new AddressesModel();
         addressesModel.shipTo = addressLocationInfo;

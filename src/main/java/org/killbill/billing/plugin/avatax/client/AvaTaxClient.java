@@ -25,6 +25,7 @@ import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
+import org.killbill.billing.plugin.avatax.client.model.AvaTaxErrors;
 import org.killbill.billing.plugin.avatax.client.model.CreateTransactionModel;
 import org.killbill.billing.plugin.avatax.client.model.TransactionModel;
 import org.killbill.billing.plugin.avatax.core.AvaTaxActivator;
@@ -95,9 +96,10 @@ public class AvaTaxClient extends HttpClient {
             throw new AvaTaxClientException(e);
         } catch (final InvalidRequest e) {
             try {
-                return deserializeResponse(e.getResponse(), TransactionModel.class, ResponseFormat.JSON);
+                final AvaTaxErrors errors = deserializeResponse(e.getResponse(), AvaTaxErrors.class, ResponseFormat.JSON);
+                throw new AvaTaxClientException(errors, e);
             } catch (final IOException e1) {
-                throw new AvaTaxClientException(e1);
+                throw new AvaTaxClientException(e);
             }
         }
     }

@@ -33,6 +33,7 @@ import org.killbill.billing.invoice.api.InvoiceItem;
 import org.killbill.billing.invoice.api.InvoiceItemType;
 import org.killbill.billing.plugin.TestUtils;
 import org.killbill.billing.plugin.avatax.AvaTaxRemoteTestBase;
+import org.killbill.billing.plugin.avatax.client.model.AvaTaxErrors;
 import org.killbill.billing.plugin.avatax.client.model.CommonResponse;
 import org.killbill.billing.plugin.avatax.client.model.TransactionModel;
 import org.killbill.billing.plugin.avatax.dao.gen.tables.records.AvataxResponsesRecord;
@@ -81,9 +82,6 @@ public class TestAvaTaxDao extends AvaTaxRemoteTestBase {
         final TransactionModel taxResultS2 = new TransactionModel();
         taxResultS2.code = UUID.randomUUID().toString();
 
-        final TransactionModel taxResultE = new TransactionModel();
-        taxResultE.code = UUID.randomUUID().toString();
-
         // Success
         dao.addResponse(kbAccountId,
                         kbInvoiceId,
@@ -104,7 +102,7 @@ public class TestAvaTaxDao extends AvaTaxRemoteTestBase {
         dao.addResponse(kbAccountId,
                         kbInvoiceId,
                         ImmutableMap.<UUID, Iterable<InvoiceItem>>of(),
-                        taxResultE,
+                        new AvaTaxErrors(),
                         new DateTime(DateTimeZone.UTC),
                         kbTenantId);
         // Other invoice

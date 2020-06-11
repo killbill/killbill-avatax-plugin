@@ -38,6 +38,7 @@ import org.jooq.DSLContext;
 import org.jooq.TransactionalRunnable;
 import org.jooq.impl.DSL;
 import org.killbill.billing.invoice.api.InvoiceItem;
+import org.killbill.billing.plugin.avatax.client.model.AvaTaxErrors;
 import org.killbill.billing.plugin.avatax.client.model.CommonResponse;
 import org.killbill.billing.plugin.avatax.client.model.TransactionModel;
 import org.killbill.billing.plugin.avatax.client.model.TaxRateResult;
@@ -60,6 +61,7 @@ public class AvaTaxDao extends PluginDao {
     private static final Logger logger = LoggerFactory.getLogger(AvaTaxDao.class);
 
     private static final String SUCCESS = CommonResponse.SeverityLevel.Success.name();
+    private static final String ERROR = CommonResponse.SeverityLevel.Error.name();
 
     public AvaTaxDao(final DataSource dataSource) throws SQLException {
         super(dataSource);
@@ -170,6 +172,7 @@ public class AvaTaxDao extends PluginDao {
                 });
     }
 
+    // Success
     public void addResponse(final UUID kbAccountId,
                             final UUID kbInvoiceId,
                             final Map<UUID, Iterable<InvoiceItem>> kbInvoiceItems,
@@ -219,9 +222,42 @@ public class AvaTaxDao extends PluginDao {
                                    asString(taxResult.lines),
                                    asString(taxResult.summary),
                                    asString(taxResult.addresses),
-                                   null,
+                                   SUCCESS,
                                    asString(taxResult.messages),
                                    null,
+                                   toTimestamp(utcNow),
+                                   kbTenantId.toString())
+                           .execute();
+                        return null;
+                    }
+                });
+    }
+
+    // !Success
+    public void addResponse(final UUID kbAccountId,
+                            final UUID kbInvoiceId,
+                            final Map<UUID, Iterable<InvoiceItem>> kbInvoiceItems,
+                            final AvaTaxErrors errors,
+                            final DateTime utcNow,
+                            final UUID kbTenantId) throws SQLException {
+        execute(dataSource.getConnection(),
+                new WithConnectionCallback<Void>() {
+                    @Override
+                    public Void withConnection(final Connection conn) throws SQLException {
+                        DSL.using(conn, dialect, settings)
+                           .insertInto(AVATAX_RESPONSES,
+                                       AVATAX_RESPONSES.KB_ACCOUNT_ID,
+                                       AVATAX_RESPONSES.KB_INVOICE_ID,
+                                       AVATAX_RESPONSES.KB_INVOICE_ITEM_IDS,
+                                       AVATAX_RESPONSES.RESULT_CODE,
+                                       AVATAX_RESPONSES.ADDITIONAL_DATA,
+                                       AVATAX_RESPONSES.CREATED_DATE,
+                                       AVATAX_RESPONSES.KB_TENANT_ID)
+                           .values(kbAccountId.toString(),
+                                   kbInvoiceId.toString(),
+                                   kbInvoiceItemsIdsAsString(kbInvoiceItems),
+                                   ERROR,
+                                   asString(errors),
                                    toTimestamp(utcNow),
                                    kbTenantId.toString())
                            .execute();

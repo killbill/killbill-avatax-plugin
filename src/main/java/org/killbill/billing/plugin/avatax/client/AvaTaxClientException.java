@@ -1,6 +1,7 @@
 /*
- * Copyright 2015 Groupon, Inc
- * Copyright 2015 The Billing Project, LLC
+ * Copyright 2015-2020 Groupon, Inc
+ * Copyright 2020-2020 Equinix, Inc
+ * Copyright 2015-2020 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -17,7 +18,11 @@
 
 package org.killbill.billing.plugin.avatax.client;
 
+import org.killbill.billing.plugin.avatax.client.model.AvaTaxErrors;
+
 public class AvaTaxClientException extends Exception {
+
+    private AvaTaxErrors errors = null;
 
     public AvaTaxClientException(final Exception e) {
         super(e);
@@ -29,5 +34,21 @@ public class AvaTaxClientException extends Exception {
 
     public AvaTaxClientException(final String message, final Exception e) {
         super(message, e);
+    }
+
+    public AvaTaxClientException(final AvaTaxErrors errors, final Exception e) {
+        super(e);
+        this.errors = errors;
+    }
+
+    public AvaTaxErrors getErrors() {
+        return errors;
+    }
+
+    @Override
+    public String toString() {
+        return errors == null ? super.toString() : "AvaTaxClientException{" +
+                                                   "errors=" + errors +
+                                                   '}';
     }
 }

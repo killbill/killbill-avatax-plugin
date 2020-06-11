@@ -49,10 +49,14 @@ public class CreateTransactionModel {
 
     public String simplifiedToString() {
         final StringBuilder sb = new StringBuilder();
-        sb.append("code=").append(code);
-        sb.append(", date=").append(date == null ? null : new DateTime(date).toString());
-        sb.append(", customerCode=").append(customerCode);
-        sb.append(", referenceCode=").append(referenceCode);
+        if (!commit) {
+            // AvaTax id, useful only if the document is persisted
+            sb.append("code=").append(code);
+        } else {
+            sb.append("commit=false");
+        }
+        sb.append(", description=").append(description); // Kill Bill invoiceId
+        sb.append(", referenceCode=").append(referenceCode); // Kill Bill original invoiceId
         sb.append(", lines=[");
         boolean first = true;
         for (final LineItemModel lineItemModel : lines) {

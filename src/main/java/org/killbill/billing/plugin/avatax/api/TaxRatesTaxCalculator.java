@@ -1,6 +1,7 @@
 /*
- * Copyright 2015 Groupon, Inc
- * Copyright 2015 The Billing Project, LLC
+ * Copyright 2015-2020 Groupon, Inc
+ * Copyright 2020-2020 Equinix, Inc
+ * Copyright 2015-2020 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -31,6 +32,7 @@ import org.joda.time.LocalDate;
 import org.killbill.billing.account.api.Account;
 import org.killbill.billing.invoice.api.Invoice;
 import org.killbill.billing.invoice.api.InvoiceItem;
+import org.killbill.billing.osgi.libs.killbill.OSGIKillbillAPI;
 import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.api.PluginProperties;
 import org.killbill.billing.plugin.avatax.client.AvaTaxClientException;
@@ -38,6 +40,7 @@ import org.killbill.billing.plugin.avatax.client.model.RateModel;
 import org.killbill.billing.plugin.avatax.client.model.TaxRateResult;
 import org.killbill.billing.plugin.avatax.core.TaxRatesConfigurationHandler;
 import org.killbill.billing.plugin.avatax.dao.AvaTaxDao;
+import org.killbill.billing.plugin.util.KillBillMoney;
 import org.killbill.clock.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,8 +58,11 @@ public class TaxRatesTaxCalculator extends AvaTaxTaxCalculatorBase {
 
     private final TaxRatesConfigurationHandler taxRatesConfigurationHandler;
 
-    public TaxRatesTaxCalculator(final TaxRatesConfigurationHandler taxRatesConfigurationHandler, final AvaTaxDao dao, final Clock clock) {
-        super(dao, clock);
+    public TaxRatesTaxCalculator(final TaxRatesConfigurationHandler taxRatesConfigurationHandler,
+                                 final AvaTaxDao dao,
+                                 final Clock clock,
+                                 final OSGIKillbillAPI osgiKillbillAPI) {
+        super(dao, clock, osgiKillbillAPI);
         this.taxRatesConfigurationHandler = taxRatesConfigurationHandler;
     }
 
@@ -71,21 +77,22 @@ public class TaxRatesTaxCalculator extends AvaTaxTaxCalculatorBase {
                                                         final Iterable<PluginProperty> pluginProperties,
                                                         final UUID kbTenantId,
                                                         final Map<UUID, Iterable<InvoiceItem>> kbInvoiceItems,
-                                                        final LocalDate utcToday) throws AvaTaxClientException, SQLException {
-        // Expected tax rates
+                                                        final LocalDate utcToday) throws SQLException {
         final TaxRateResult taxRates = getTaxRates(account, kbTenantId);
         if (taxRates == null) {
             return ImmutableList.<InvoiceItem>of();
         }
         logger.info("TaxRateResult for account {}: {}", account.getId(), taxRates.simplifiedToString());
-
-        dao.addResponse(account.getId(), invoice.getId(), kbInvoiceItems, taxRates, clock.getUTCNow(), kbTenantId);
+        dao.addResponse(account.getId(), newInvoice.getId(), kbInvoiceItems, taxRates, clock.getUTCNow(), kbTenantId);
 
         final Collection<InvoiceItem> newTaxItems = new LinkedList<InvoiceItem>();
         for (final InvoiceItem taxableItem : taxableItems.values()) {
-            final Collection<InvoiceItem> adjustmentsForTaxableItem = adjustmentItems == null ? null : adjustmentItems.get(taxableItem.getId());
-            final BigDecimal netItemAmount = netAmount(taxableItem, adjustmentsForTaxableItem);
-            newTaxItems.addAll(buildInvoiceItems(newInvoice, taxableItem, pluginProperties, netItemAmount, utcToday, taxRates));
+            if (adjustmentItems != null) {
+                final BigDecimal adjustmentAmount = sum(adjustmentItems.get(taxableItem.getId()));
+                newTaxItems.addAll(buildInvoiceItems(newInvoice, taxableItem, pluginProperties, adjustmentAmount, taxRates));
+            } else {
+                newTaxItems.addAll(buildInvoiceItems(newInvoice, taxableItem, pluginProperties, taxableItem.getAmount(), taxRates));
+            }
         }
 
         return newTaxItems;
@@ -95,7 +102,6 @@ public class TaxRatesTaxCalculator extends AvaTaxTaxCalculatorBase {
                                                       final InvoiceItem taxableItem,
                                                       final Iterable<PluginProperty> pluginProperties,
                                                       final BigDecimal netItemAmount,
-                                                      final LocalDate utcToday,
                                                       final TaxRateResult taxRates) {
         final List<String> rateTypes = ImmutableList.<String>copyOf(Iterables.transform(PluginProperties.findPluginProperties(RATE_TYPE, pluginProperties),
                                                                                         new Function<PluginProperty, String>() {
@@ -107,10 +113,12 @@ public class TaxRatesTaxCalculator extends AvaTaxTaxCalculatorBase {
 
         final Collection<InvoiceItem> newTaxItems = new LinkedList<InvoiceItem>();
         if (taxRates.rates == null || taxRates.rates.isEmpty()) {
+            final BigDecimal rawAmount = BigDecimal.valueOf(taxRates.totalRate).multiply(netItemAmount);
+            // Use KillBillMoney to ensure we use the same rounding everywhere
+            final BigDecimal amount = KillBillMoney.of(rawAmount, taxableItem.getCurrency());
             final InvoiceItem taxItem = buildTaxItem(taxableItem,
                                                      newInvoice.getId(),
-                                                     utcToday,
-                                                     BigDecimal.valueOf(taxRates.totalRate).multiply(netItemAmount),
+                                                     amount,
                                                      "Tax");
             if (taxItem != null) {
                 newTaxItems.add(taxItem);
@@ -118,10 +126,12 @@ public class TaxRatesTaxCalculator extends AvaTaxTaxCalculatorBase {
         } else {
             for (final RateModel rateModel : taxRates.rates) {
                 if (rateTypes.isEmpty() || rateTypes.contains(rateModel.type)) {
+                    final BigDecimal rawAmount = BigDecimal.valueOf(rateModel.rate).multiply(netItemAmount);
+                    // Use KillBillMoney to ensure we use the same rounding everywhere
+                    final BigDecimal amount = KillBillMoney.of(rawAmount, taxableItem.getCurrency());
                     final InvoiceItem taxItem = buildTaxItem(taxableItem,
                                                              newInvoice.getId(),
-                                                             utcToday,
-                                                             BigDecimal.valueOf(rateModel.rate).multiply(netItemAmount),
+                                                             amount,
                                                              MoreObjects.firstNonNull(rateModel.name, "Tax"));
                     if (taxItem != null) {
                         newTaxItems.add(taxItem);

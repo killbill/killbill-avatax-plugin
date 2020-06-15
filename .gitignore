@@ -11,6 +11,7 @@
 .idea/dictionaries
 
 .idea/jarRepositories.xml
+.idea/sqldialects.xml
 
 # Sensitive or high-churn files:
 .idea/**/dataSources/

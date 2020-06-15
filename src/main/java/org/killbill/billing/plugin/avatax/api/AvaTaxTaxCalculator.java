@@ -32,6 +32,7 @@ import org.joda.time.LocalDate;
 import org.killbill.billing.account.api.Account;
 import org.killbill.billing.invoice.api.Invoice;
 import org.killbill.billing.invoice.api.InvoiceItem;
+import org.killbill.billing.osgi.libs.killbill.OSGIKillbillAPI;
 import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.api.PluginProperties;
 import org.killbill.billing.plugin.avatax.client.AvaTaxClient;
@@ -66,8 +67,11 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
 
     private final AvaTaxConfigurationHandler avaTaxConfigurationHandler;
 
-    public AvaTaxTaxCalculator(final AvaTaxConfigurationHandler avaTaxConfigurationHandler, final AvaTaxDao dao, final Clock clock) {
-        super(dao, clock);
+    public AvaTaxTaxCalculator(final AvaTaxConfigurationHandler avaTaxConfigurationHandler,
+                               final AvaTaxDao dao,
+                               final Clock clock,
+                               final OSGIKillbillAPI osgiKillbillAPI) {
+        super(dao, clock, osgiKillbillAPI);
         this.avaTaxConfigurationHandler = avaTaxConfigurationHandler;
     }
 
@@ -76,7 +80,7 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
                                                         final Invoice newInvoice,
                                                         final Invoice invoice,
                                                         final Map<UUID, InvoiceItem> taxableItems,
-                                                        final Map<UUID, Collection<InvoiceItem>> adjustmentItems,
+                                                        @Nullable final Map<UUID, Collection<InvoiceItem>> adjustmentItems,
                                                         @Nullable final String originalInvoiceReferenceCode,
                                                         final boolean dryRun,
                                                         final Iterable<PluginProperty> pluginProperties,
@@ -87,12 +91,20 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
         final String companyCode = avaTaxClient.getCompanyCode();
         final boolean shouldCommitDocuments = !dryRun && avaTaxClient.shouldCommitDocuments();
 
-        final CreateTransactionModel taxRequest = toTaxRequest(companyCode, account, invoice, taxableItems.values(), adjustmentItems, originalInvoiceReferenceCode, !shouldCommitDocuments, pluginProperties, utcToday);
+        final CreateTransactionModel taxRequest = toTaxRequest(companyCode,
+                                                               account,
+                                                               invoice,
+                                                               taxableItems.values(),
+                                                               adjustmentItems,
+                                                               originalInvoiceReferenceCode,
+                                                               !shouldCommitDocuments,
+                                                               pluginProperties,
+                                                               utcToday);
         logger.info("CreateTransaction req: {}", taxRequest.simplifiedToString());
 
         try {
             final TransactionModel taxResult = avaTaxClient.createTransaction(taxRequest);
-            dao.addResponse(account.getId(), invoice.getId(), kbInvoiceItems, taxResult, clock.getUTCNow(), kbTenantId);
+            dao.addResponse(account.getId(), newInvoice.getId(), kbInvoiceItems, taxResult, clock.getUTCNow(), kbTenantId);
             logger.info("CreateTransaction res: {}", taxResult.simplifiedToString());
 
             if (taxResult.lines == null || taxResult.lines.length == 0) {
@@ -119,7 +131,7 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
 
     private Collection<InvoiceItem> toInvoiceItems(final UUID invoiceId, final InvoiceItem taxableItem, final TransactionLineModel transactionLineModel, final LocalDate utcToday) {
         if (transactionLineModel.details == null || transactionLineModel.details.length == 0) {
-            final InvoiceItem taxItem = buildTaxItem(taxableItem, invoiceId, utcToday, BigDecimal.valueOf(transactionLineModel.tax), "Tax");
+            final InvoiceItem taxItem = buildTaxItem(taxableItem, invoiceId, BigDecimal.valueOf(transactionLineModel.tax), "Tax");
             if (taxItem == null) {
                 return ImmutableList.<InvoiceItem>of();
             } else {
@@ -129,7 +141,7 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
             final Collection<InvoiceItem> invoiceItems = new LinkedList<InvoiceItem>();
             for (final TransactionLineDetailModel transactionLineDetailModel : transactionLineModel.details) {
                 final String description = MoreObjects.firstNonNull(transactionLineDetailModel.taxName, MoreObjects.firstNonNull(transactionLineDetailModel.taxName, "Tax"));
-                final InvoiceItem taxItem = buildTaxItem(taxableItem, invoiceId, utcToday, BigDecimal.valueOf(transactionLineDetailModel.tax), description);
+                final InvoiceItem taxItem = buildTaxItem(taxableItem, invoiceId, BigDecimal.valueOf(transactionLineDetailModel.tax), description);
                 if (taxItem != null) {
                     invoiceItems.add(taxItem);
                 }
@@ -139,7 +151,7 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
     }
 
     /**
-     * Given some invoice items for a given invoice, prepare a GetTaxRequest for AvaTax. At this point, we've already
+     * Given some invoice items for a given invoice, prepare a CreateTransactionModel entity for AvaTax. At this point, we've already
      * verified that these items need to be created and don't exist in AvaTax yet.
      * <p/>
      * Note that this will create either a Sales or a Return document, but not both. This means that
@@ -148,15 +160,15 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
      * <p/>
      * In case of subsequent Return, only pass the new adjustments in <b>adjustmentItems</b>.
      *
+     * @param companyCode                  Company code
      * @param account                      Kill Bill account
-     * @param invoice                      Kill Bill invoice associated with the taxable items
-     * @param taxableItems                 taxable invoice items associated with that invoice
-     * @param adjustmentItems              invoice item adjustments associated (empty for Sales document)
-     * @param originalInvoiceReferenceCode the original AvaTax reference code  (null for Sales document)
+     * @param invoice                      Kill Bill invoice associated with the taxable items (either the new invoice or an historical invoice for returns)
+     * @param taxableItems                 new taxable invoice items or original, already taxed, items if they're being adjusted
+     * @param adjustmentItems              new taxableItem adjustment items, used to compute the amount of tax to return (null for Sales document), keyed by taxable item id
+     * @param originalInvoiceReferenceCode the original AvaTax reference code (null for Sales document)
      * @param pluginProperties             Kill Bill plugin properties
      * @param dryRun                       true if the invoice won't be persisted
      * @param utcToday                     today's date
-     * @return GetTaxRequest object
      */
     private CreateTransactionModel toTaxRequest(final String companyCode,
                                                 final Account account,
@@ -209,7 +221,10 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
         int i = 0;
         while (taxableItemsIterator.hasNext()) {
             final InvoiceItem taxableItem = taxableItemsIterator.next();
-            taxRequest.lines[i] = toLine(invoice, taxableItem, adjustmentItems == null ? null : adjustmentItems.get(taxableItem.getId()), null, pluginProperties);
+            taxRequest.lines[i] = toLine(taxableItem,
+                                         adjustmentItems == null ? null : adjustmentItems.get(taxableItem.getId()),
+                                         invoice.getInvoiceDate(),
+                                         pluginProperties);
             i++;
         }
 
@@ -228,13 +243,15 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
      * <li>set the Amt property to a negative dollar amount on the line items (always leave the Qty as a positive number)</li>
      * </ul>
      *
-     * @param invoice         invoice associated with the taxable item
-     * @param taxableItem     taxable invoice item
-     * @param adjustmentItems associated adjustment items (null for Sales document)
-     * @param locationCode    associated location from the Addresses field
-     * @return Line object
+     * @param taxableItem         new taxable invoice item or original, already taxed, item if it's being adjusted
+     * @param adjustmentItems     new taxableItem adjustment items, used to compute the amount of tax to return (null for Sales document)
+     * @param originalInvoiceDate date of the original taxableItem's invoice (not the invoice date of the repair for instance), if it's being returned
+     * @param pluginProperties    plugin properties
      */
-    private LineItemModel toLine(final Invoice invoice, final InvoiceItem taxableItem, @Nullable final Iterable<InvoiceItem> adjustmentItems, final String locationCode, final Iterable<PluginProperty> pluginProperties) {
+    private LineItemModel toLine(final InvoiceItem taxableItem,
+                                 @Nullable final Iterable<InvoiceItem> adjustmentItems,
+                                 @Nullable final LocalDate originalInvoiceDate,
+                                 final Iterable<PluginProperty> pluginProperties) {
         final LineItemModel lineItemModel = new LineItemModel();
         lineItemModel.number = taxableItem.getId().toString();
         // SKU
@@ -264,13 +281,14 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
                                  "Invalid adjustmentAmount %s for invoice item %s", adjustmentAmount, taxableItem);
         lineItemModel.amount = isReturnDocument ? adjustmentAmount : taxableItem.getAmount();
         if (isReturnDocument) {
+            Preconditions.checkNotNull(adjustmentItems, "Missing adjustments for return document");
             // Adjustment
             lineItemModel.taxOverride = new TaxOverrideModel();
             lineItemModel.taxOverride.type = "TaxDate";
             // Note: we could also look-up the audit logs
             lineItemModel.taxOverride.reason = MoreObjects.firstNonNull(adjustmentItems.iterator().next().getDescription(), "Adjustment");
             lineItemModel.taxOverride.taxAmount = null;
-            lineItemModel.taxOverride.taxDate = invoice.getInvoiceDate().toString();
+            lineItemModel.taxOverride.taxDate = originalInvoiceDate.toString();
         }
 
         lineItemModel.taxCode = PluginProperties.findPluginPropertyValue(String.format("%s_%s", TAX_CODE, taxableItem.getId()), pluginProperties);

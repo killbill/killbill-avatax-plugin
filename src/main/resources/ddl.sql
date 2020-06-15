@@ -39,4 +39,4 @@ create table avatax_tax_codes (
 , primary key(record_id)
 ) /*! CHARACTER SET utf8 COLLATE utf8_bin */;
 create index avatax_tax_codes_product_name on avatax_tax_codes(product_name);
-create unique index avatax_tax_codes_product_name_tax_code on avatax_tax_codes(product_name, tax_code);
+create unique index avatax_tax_codes_product_name_tax_code_kb_tenant_id on avatax_tax_codes(product_name, tax_code, kb_tenant_id);

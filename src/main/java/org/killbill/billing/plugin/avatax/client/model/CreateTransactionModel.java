@@ -65,7 +65,9 @@ public class CreateTransactionModel {
             } else {
                 sb.append(",");
             }
-            sb.append(lineItemModel.amount);
+            sb.append("code=").append(lineItemModel.taxCode);
+            sb.append(" ");
+            sb.append("amount=").append(lineItemModel.amount);
         }
         sb.append("]");
         if (taxOverride != null) {

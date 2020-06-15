@@ -1,6 +1,7 @@
 /*
- * Copyright 2014-2015 Groupon, Inc
- * Copyright 2014-2015 The Billing Project, LLC
+ * Copyright 2014-2020 Groupon, Inc
+ * Copyright 2020-2020 Equinix, Inc
+ * Copyright 2014-2020 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -26,10 +27,12 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.killbill.billing.ObjectType;
+import org.killbill.billing.account.api.Account;
 import org.killbill.billing.catalog.api.CatalogApiException;
 import org.killbill.billing.catalog.api.Plan;
 import org.killbill.billing.catalog.api.StaticCatalog;
 import org.killbill.billing.invoice.api.Invoice;
+import org.killbill.billing.invoice.api.InvoiceApiException;
 import org.killbill.billing.invoice.api.InvoiceItem;
 import org.killbill.billing.osgi.libs.killbill.OSGIConfigPropertiesService;
 import org.killbill.billing.osgi.libs.killbill.OSGIKillbillAPI;
@@ -61,17 +64,24 @@ public class AvaTaxInvoicePluginApi extends PluginInvoicePluginApi {
                                   final Clock clock) {
         super(killbillApi, configProperties, logService, clock);
         this.dao = dao;
-        this.calculator = new AvaTaxTaxCalculator(avaTaxConfigurationHandler, dao, clock);
+        this.calculator = new AvaTaxTaxCalculator(avaTaxConfigurationHandler, dao, clock, killbillApi);
     }
 
     @Override
     public List<InvoiceItem> getAdditionalInvoiceItems(final Invoice invoice, final boolean dryRun, final Iterable<PluginProperty> properties, final CallContext context) {
         final Collection<PluginProperty> pluginProperties = Lists.<PluginProperty>newArrayList(properties);
 
+        final Account account = getAccount(invoice.getAccountId(), context);
+
         checkForTaxExemption(invoice, pluginProperties, context);
         checkForTaxCodes(invoice, pluginProperties, context);
 
-        return getAdditionalTaxInvoiceItems(calculator, invoice, dryRun, pluginProperties, context);
+        try {
+            return calculator.compute(account, invoice, dryRun, properties, context);
+        } catch (final InvoiceApiException e) {
+            // Prevent invoice generation
+            throw new RuntimeException(e);
+        }
     }
 
     private void checkForTaxExemption(final Invoice invoice, final Collection<PluginProperty> properties, final TenantContext context) {

@@ -71,7 +71,7 @@ public class TaxRatesTaxCalculator extends AvaTaxTaxCalculatorBase {
                                                         final Invoice newInvoice,
                                                         final Invoice invoice,
                                                         final Map<UUID, InvoiceItem> taxableItems,
-                                                        @Nullable final Map<UUID, Collection<InvoiceItem>> adjustmentItems,
+                                                        @Nullable final Map<UUID, List<InvoiceItem>> adjustmentItems,
                                                         @Nullable final String originalInvoiceReferenceCode,
                                                         final boolean dryRun,
                                                         final Iterable<PluginProperty> pluginProperties,
@@ -88,10 +88,18 @@ public class TaxRatesTaxCalculator extends AvaTaxTaxCalculatorBase {
         final Collection<InvoiceItem> newTaxItems = new LinkedList<InvoiceItem>();
         for (final InvoiceItem taxableItem : taxableItems.values()) {
             if (adjustmentItems != null) {
+                final InvoiceItem adjustmentItem;
+                if (adjustmentItems.get(taxableItem.getId()) != null && adjustmentItems.get(taxableItem.getId()).size() == 1) {
+                    // Could be a repair or an item adjustment: in either case, we use it to compute the service period
+                    adjustmentItem = adjustmentItems.get(taxableItem.getId()).get(0);
+                } else {
+                    // Multiple adjustments: use the original service period
+                    adjustmentItem = null;
+                }
                 final BigDecimal adjustmentAmount = sum(adjustmentItems.get(taxableItem.getId()));
-                newTaxItems.addAll(buildInvoiceItems(newInvoice, taxableItem, pluginProperties, adjustmentAmount, taxRates));
+                newTaxItems.addAll(buildInvoiceItems(newInvoice, taxableItem, adjustmentItem, pluginProperties, adjustmentAmount, taxRates));
             } else {
-                newTaxItems.addAll(buildInvoiceItems(newInvoice, taxableItem, pluginProperties, taxableItem.getAmount(), taxRates));
+                newTaxItems.addAll(buildInvoiceItems(newInvoice, taxableItem, null, pluginProperties, taxableItem.getAmount(), taxRates));
             }
         }
 
@@ -100,6 +108,7 @@ public class TaxRatesTaxCalculator extends AvaTaxTaxCalculatorBase {
 
     private Collection<InvoiceItem> buildInvoiceItems(final Invoice newInvoice,
                                                       final InvoiceItem taxableItem,
+                                                      @Nullable final InvoiceItem repairItem,
                                                       final Iterable<PluginProperty> pluginProperties,
                                                       final BigDecimal netItemAmount,
                                                       final TaxRateResult taxRates) {
@@ -118,6 +127,7 @@ public class TaxRatesTaxCalculator extends AvaTaxTaxCalculatorBase {
             final BigDecimal amount = KillBillMoney.of(rawAmount, taxableItem.getCurrency());
             final InvoiceItem taxItem = buildTaxItem(taxableItem,
                                                      newInvoice.getId(),
+                                                     repairItem,
                                                      amount,
                                                      "Tax");
             if (taxItem != null) {
@@ -131,6 +141,7 @@ public class TaxRatesTaxCalculator extends AvaTaxTaxCalculatorBase {
                     final BigDecimal amount = KillBillMoney.of(rawAmount, taxableItem.getCurrency());
                     final InvoiceItem taxItem = buildTaxItem(taxableItem,
                                                              newInvoice.getId(),
+                                                             repairItem,
                                                              amount,
                                                              MoreObjects.firstNonNull(rateModel.name, "Tax"));
                     if (taxItem != null) {

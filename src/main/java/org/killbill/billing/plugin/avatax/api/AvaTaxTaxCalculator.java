@@ -23,6 +23,7 @@ import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -80,7 +81,7 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
                                                         final Invoice newInvoice,
                                                         final Invoice invoice,
                                                         final Map<UUID, InvoiceItem> taxableItems,
-                                                        @Nullable final Map<UUID, Collection<InvoiceItem>> adjustmentItems,
+                                                        @Nullable final Map<UUID, List<InvoiceItem>> adjustmentItems,
                                                         @Nullable final String originalInvoiceReferenceCode,
                                                         final boolean dryRun,
                                                         final Iterable<PluginProperty> pluginProperties,
@@ -116,7 +117,17 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
             for (final TransactionLineModel transactionLineModel : taxResult.lines) {
                 // See convention in toLine() below
                 final UUID invoiceItemId = UUID.fromString(transactionLineModel.lineNumber);
-                invoiceItems.addAll(toInvoiceItems(newInvoice.getId(), taxableItems.get(invoiceItemId), transactionLineModel, utcToday));
+                final InvoiceItem adjustmentItem;
+                if (adjustmentItems != null &&
+                    adjustmentItems.get(invoiceItemId) != null &&
+                    adjustmentItems.get(invoiceItemId).size() == 1) {
+                    // Could be a repair or an item adjustment: in either case, we use it to compute the service period
+                    adjustmentItem = adjustmentItems.get(invoiceItemId).get(0);
+                } else {
+                    // No repair or multiple adjustments: use the original service period
+                    adjustmentItem = null;
+                }
+                invoiceItems.addAll(toInvoiceItems(newInvoice.getId(), taxableItems.get(invoiceItemId), transactionLineModel, adjustmentItem));
             }
 
             return invoiceItems;
@@ -129,9 +140,12 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
         }
     }
 
-    private Collection<InvoiceItem> toInvoiceItems(final UUID invoiceId, final InvoiceItem taxableItem, final TransactionLineModel transactionLineModel, final LocalDate utcToday) {
+    private Collection<InvoiceItem> toInvoiceItems(final UUID invoiceId,
+                                                   final InvoiceItem taxableItem,
+                                                   final TransactionLineModel transactionLineModel,
+                                                   @Nullable final InvoiceItem adjustmentItem) {
         if (transactionLineModel.details == null || transactionLineModel.details.length == 0) {
-            final InvoiceItem taxItem = buildTaxItem(taxableItem, invoiceId, BigDecimal.valueOf(transactionLineModel.tax), "Tax");
+            final InvoiceItem taxItem = buildTaxItem(taxableItem, invoiceId, adjustmentItem, BigDecimal.valueOf(transactionLineModel.tax), "Tax");
             if (taxItem == null) {
                 return ImmutableList.<InvoiceItem>of();
             } else {
@@ -141,7 +155,7 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
             final Collection<InvoiceItem> invoiceItems = new LinkedList<InvoiceItem>();
             for (final TransactionLineDetailModel transactionLineDetailModel : transactionLineModel.details) {
                 final String description = MoreObjects.firstNonNull(transactionLineDetailModel.taxName, MoreObjects.firstNonNull(transactionLineDetailModel.taxName, "Tax"));
-                final InvoiceItem taxItem = buildTaxItem(taxableItem, invoiceId, BigDecimal.valueOf(transactionLineDetailModel.tax), description);
+                final InvoiceItem taxItem = buildTaxItem(taxableItem, invoiceId, adjustmentItem, BigDecimal.valueOf(transactionLineDetailModel.tax), description);
                 if (taxItem != null) {
                     invoiceItems.add(taxItem);
                 }
@@ -174,7 +188,7 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
                                                 final Account account,
                                                 final Invoice invoice,
                                                 final Collection<InvoiceItem> taxableItems,
-                                                @Nullable final Map<UUID, Collection<InvoiceItem>> adjustmentItems,
+                                                @Nullable final Map<UUID, List<InvoiceItem>> adjustmentItems,
                                                 @Nullable final String originalInvoiceReferenceCode,
                                                 final boolean dryRun,
                                                 final Iterable<PluginProperty> pluginProperties,

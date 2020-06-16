@@ -112,7 +112,7 @@ public abstract class AvaTaxTaxCalculatorBase extends PluginTaxCalculator {
 
             final Invoice invoice = itemsToReturn.iterator().next().getInvoice();
             final Map<UUID, InvoiceItem> taxableItemsToReturn = new HashMap<UUID, InvoiceItem>();
-            final Map<UUID, Collection<InvoiceItem>> adjustmentItems = new HashMap<>();
+            final Map<UUID, List<InvoiceItem>> adjustmentItems = new HashMap<UUID, List<InvoiceItem>>();
             for (final NewItemToTax itemToReturn : itemsToReturn) {
                 taxableItemsToReturn.put(itemToReturn.getTaxableItem().getId(), itemToReturn.getTaxableItem());
                 adjustmentItems.put(itemToReturn.getTaxableItem().getId(), itemToReturn.getAdjustmentItems());
@@ -144,7 +144,7 @@ public abstract class AvaTaxTaxCalculatorBase extends PluginTaxCalculator {
                                          final Invoice newInvoice,
                                          final Invoice invoice,
                                          final Map<UUID, InvoiceItem> taxableItems,
-                                         @Nullable final Map<UUID, Collection<InvoiceItem>> adjustmentItems,
+                                         @Nullable final Map<UUID, List<InvoiceItem>> adjustmentItems,
                                          @Nullable final String originalInvoiceReferenceCode,
                                          final boolean dryRun,
                                          final Iterable<PluginProperty> pluginProperties,
@@ -190,7 +190,7 @@ public abstract class AvaTaxTaxCalculatorBase extends PluginTaxCalculator {
                                                                  final Invoice newInvoice,
                                                                  final Invoice invoice,
                                                                  final Map<UUID, InvoiceItem> taxableItems,
-                                                                 @Nullable final Map<UUID, Collection<InvoiceItem>> adjustmentItems,
+                                                                 @Nullable final Map<UUID, List<InvoiceItem>> adjustmentItems,
                                                                  @Nullable final String originalInvoiceReferenceCode,
                                                                  final boolean dryRun,
                                                                  final Iterable<PluginProperty> pluginProperties,

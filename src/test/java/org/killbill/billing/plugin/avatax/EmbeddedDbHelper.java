@@ -38,9 +38,6 @@ public class EmbeddedDbHelper {
     }
 
     public void startDb() throws Exception {
-        // TODO FIXME
-        Class.forName("com.mysql.jdbc.Driver");
-
         embeddedDB = PlatformDBTestingHelper.get().getInstance();
         embeddedDB.initialize();
         embeddedDB.start();

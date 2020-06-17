@@ -23,14 +23,16 @@ import javax.servlet.Servlet;
 import javax.servlet.http.HttpServlet;
 
 import org.killbill.billing.invoice.plugin.api.InvoicePluginApi;
+import org.killbill.billing.osgi.api.Healthcheck;
 import org.killbill.billing.osgi.api.OSGIPluginProperties;
 import org.killbill.billing.osgi.libs.killbill.KillbillActivatorBase;
-import org.killbill.billing.osgi.libs.killbill.OSGIKillbillEventDispatcher;
 import org.killbill.billing.plugin.api.notification.PluginConfigurationEventHandler;
 import org.killbill.billing.plugin.avatax.api.AvalaraInvoicePluginApi;
 import org.killbill.billing.plugin.avatax.client.AvaTaxClient;
 import org.killbill.billing.plugin.avatax.client.TaxRatesClient;
 import org.killbill.billing.plugin.avatax.dao.AvaTaxDao;
+import org.killbill.billing.plugin.core.resources.jooby.PluginApp;
+import org.killbill.billing.plugin.core.resources.jooby.PluginAppBuilder;
 import org.killbill.clock.Clock;
 import org.killbill.clock.DefaultClock;
 import org.osgi.framework.BundleContext;
@@ -63,8 +65,6 @@ public class AvaTaxActivator extends KillbillActivatorBase {
         final TaxRatesClient globalTaxRatesClient = taxRatesConfigurationHandler.createConfigurable(configProperties.getProperties());
         taxRatesConfigurationHandler.setDefaultConfigurable(globalTaxRatesClient);
 
-
-
         final InvoicePluginApi invoicePluginApi = new AvalaraInvoicePluginApi(avaTaxConfigurationHandler,
                                                                               taxRatesConfigurationHandler,
                                                                               dao,
@@ -74,7 +74,23 @@ public class AvaTaxActivator extends KillbillActivatorBase {
                                                                               clock);
         registerInvoicePluginApi(context, invoicePluginApi);
 
-        final HttpServlet servlet = new AvaTaxServlet(dao, clock);
+        // Expose the healthcheck, so other plugins can check on the AvaTax status
+        final Healthcheck avalaraHealthcheck = new AvalaraHealthcheck(avaTaxConfigurationHandler,
+                                                                      taxRatesConfigurationHandler);
+        registerHealthcheck(context, avalaraHealthcheck);
+
+        // Register the servlet
+        final PluginApp pluginApp = new PluginAppBuilder(PLUGIN_NAME,
+                                                         killbillAPI,
+                                                         logService,
+                                                         dataSource,
+                                                         super.clock,
+                                                         configProperties).withRouteClass(AvalaraHealthcheckServlet.class)
+                                                                          .withRouteClass(AvaTaxServlet.class)
+                                                                          .withService(avalaraHealthcheck)
+                                                                          .withService(dao)
+                                                                          .build();
+        final HttpServlet servlet = PluginApp.createServlet(pluginApp);
         registerServlet(context, servlet);
 
         registerEventHandler();
@@ -91,9 +107,15 @@ public class AvaTaxActivator extends KillbillActivatorBase {
         registrar.registerService(context, InvoicePluginApi.class, api, props);
     }
 
-    private void registerServlet(final BundleContext context, final HttpServlet servlet) {
+    private void registerServlet(final BundleContext context, final Servlet servlet) {
         final Hashtable<String, String> props = new Hashtable<String, String>();
         props.put(OSGIPluginProperties.PLUGIN_NAME_PROP, PLUGIN_NAME);
         registrar.registerService(context, Servlet.class, servlet, props);
+    }
+
+    private void registerHealthcheck(final BundleContext context, final Healthcheck healthcheck) {
+        final Hashtable<String, String> props = new Hashtable<String, String>();
+        props.put(OSGIPluginProperties.PLUGIN_NAME_PROP, PLUGIN_NAME);
+        registrar.registerService(context, Healthcheck.class, healthcheck, props);
     }
 }

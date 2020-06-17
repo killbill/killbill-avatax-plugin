@@ -139,3 +139,35 @@ curl -v \
      -d '{"productName":"Super","taxCode":"DC010200"}' \
      http://127.0.0.1:8080/plugins/killbill-avatax/taxCodes
 ```
+
+To list all tax codes configured in the plugin:
+
+```
+curl -v \
+     -u admin:password \
+     -H 'X-Killbill-ApiKey: bob' \
+     -H 'X-Killbill-ApiSecret: lazar' \
+     http://127.0.0.1:8080/plugins/killbill-avatax/taxCodes
+```
+
+To find a particular tax code for a product configured in the plugin:
+
+```
+curl -v \
+     -u admin:password \
+     -H 'X-Killbill-ApiKey: bob' \
+     -H 'X-Killbill-ApiSecret: lazar' \
+     http://127.0.0.1:8080/plugins/killbill-avatax/taxCodes/Super
+```
+
+To remove a tax code for a product configured in the plugin:
+
+```
+curl -v \
+     -X DELETE \
+     -u admin:password \
+     -H 'X-Killbill-ApiKey: bob' \
+     -H 'X-Killbill-ApiSecret: lazar' \
+     -H 'X-Killbill-CreatedBy: admin' \
+     http://127.0.0.1:8080/plugins/killbill-avatax/taxCodes/Super
+```

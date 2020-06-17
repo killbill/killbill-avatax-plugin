@@ -27,6 +27,7 @@ import java.util.concurrent.TimeoutException;
 
 import org.killbill.billing.plugin.avatax.client.model.AvaTaxErrors;
 import org.killbill.billing.plugin.avatax.client.model.CreateTransactionModel;
+import org.killbill.billing.plugin.avatax.client.model.PingResult;
 import org.killbill.billing.plugin.avatax.client.model.TransactionModel;
 import org.killbill.billing.plugin.avatax.core.AvaTaxActivator;
 import org.killbill.billing.plugin.util.http.HttpClient;
@@ -101,6 +102,31 @@ public class AvaTaxClient extends HttpClient {
             } catch (final IOException e1) {
                 throw new AvaTaxClientException(e);
             }
+        }
+    }
+
+    public PingResult ping() throws AvaTaxClientException {
+        try {
+            // See https://developer.avalara.com/api-reference/avatax/rest/v2/methods/Utilities/Ping/
+            return doCall(GET,
+                          url + "/utilities/ping",
+                          null,
+                          ImmutableMap.<String, String>of(),
+                          ImmutableMap.<String, String>of("X-Avalara-Client", KILL_BILL_CLIENT_HEADER),
+                          PingResult.class,
+                          ResponseFormat.JSON);
+        } catch (final InterruptedException e) {
+            throw new AvaTaxClientException(e);
+        } catch (final ExecutionException e) {
+            throw new AvaTaxClientException(e);
+        } catch (final TimeoutException e) {
+            throw new AvaTaxClientException(e);
+        } catch (final IOException e) {
+            throw new AvaTaxClientException(e);
+        } catch (final URISyntaxException e) {
+            throw new AvaTaxClientException(e);
+        } catch (final InvalidRequest e) {
+            throw new AvaTaxClientException(e);
         }
     }
 

@@ -112,7 +112,7 @@ public class TestAvaTaxInvoicePluginApi extends AvaTaxRemoteTestBase {
         final InvoiceItem taxableItem1 = TestUtils.buildInvoiceItem(invoice, InvoiceItemType.EXTERNAL_CHARGE, new BigDecimal("100"), null);
         invoiceItems.add(taxableItem1);
         pluginProperties.add(new PluginProperty(String.format("%s_%s", AvaTaxTaxCalculator.TAX_CODE, taxableItem1.getId()), "D9999999", false));
-        List<InvoiceItem> additionalInvoiceItems = avaTaxInvoicePluginApi.getAdditionalInvoiceItems(invoice, true, pluginProperties, callContext);
+        List<InvoiceItem> additionalInvoiceItems = avaTaxInvoicePluginApi.getAdditionalInvoiceItems(invoice, false, pluginProperties, callContext);
         // 4 TAX items expected (total $8.5)
         checkTaxes(additionalInvoiceItems, 4, new BigDecimal("8.5"));
 
@@ -122,7 +122,7 @@ public class TestAvaTaxInvoicePluginApi extends AvaTaxRemoteTestBase {
          *       $8.5 Tax items (x4)
          */
         invoiceItems.addAll(additionalInvoiceItems);
-        additionalInvoiceItems = avaTaxInvoicePluginApi.getAdditionalInvoiceItems(invoice, true, pluginProperties, callContext);
+        additionalInvoiceItems = avaTaxInvoicePluginApi.getAdditionalInvoiceItems(invoice, false, pluginProperties, callContext);
         checkTaxes(additionalInvoiceItems, 0, BigDecimal.ZERO);
 
         /*
@@ -133,7 +133,7 @@ public class TestAvaTaxInvoicePluginApi extends AvaTaxRemoteTestBase {
          */
         final InvoiceItem itemAdjustment2 = TestUtils.buildInvoiceItem(invoice, InvoiceItemType.ITEM_ADJ, new BigDecimal("-50"), taxableItem1.getId());
         invoiceItems.add(itemAdjustment2);
-        additionalInvoiceItems = avaTaxInvoicePluginApi.getAdditionalInvoiceItems(invoice, true, pluginProperties, callContext);
+        additionalInvoiceItems = avaTaxInvoicePluginApi.getAdditionalInvoiceItems(invoice, false, pluginProperties, callContext);
         // 4 TAX items expected (total -$4.26)
         checkTaxes(additionalInvoiceItems, 4, new BigDecimal("-4.26"));
 
@@ -145,7 +145,7 @@ public class TestAvaTaxInvoicePluginApi extends AvaTaxRemoteTestBase {
          *      -$4.26 Tax items (x4)
          */
         invoiceItems.addAll(additionalInvoiceItems);
-        additionalInvoiceItems = avaTaxInvoicePluginApi.getAdditionalInvoiceItems(invoice, true, pluginProperties, callContext);
+        additionalInvoiceItems = avaTaxInvoicePluginApi.getAdditionalInvoiceItems(invoice, false, pluginProperties, callContext);
         checkTaxes(additionalInvoiceItems, 0, BigDecimal.ZERO);
 
         /*
@@ -158,7 +158,7 @@ public class TestAvaTaxInvoicePluginApi extends AvaTaxRemoteTestBase {
          */
         final InvoiceItem itemAdjustment3 = TestUtils.buildInvoiceItem(invoice, InvoiceItemType.ITEM_ADJ, new BigDecimal("-50"), taxableItem1.getId());
         invoiceItems.add(itemAdjustment3);
-        additionalInvoiceItems = avaTaxInvoicePluginApi.getAdditionalInvoiceItems(invoice, true, pluginProperties, callContext);
+        additionalInvoiceItems = avaTaxInvoicePluginApi.getAdditionalInvoiceItems(invoice, false, pluginProperties, callContext);
         // 4 TAX items expected (total -$4.26)
         // Note: due to rounding, more tax is returned than initially taxed (the value comes straight from AvaTax).
         // To avoid this, in case of multiple item adjustments, you might have to return tax manually in AvaTax.
@@ -174,7 +174,7 @@ public class TestAvaTaxInvoicePluginApi extends AvaTaxRemoteTestBase {
          *      -$4.26 Tax items (x4)
          */
         invoiceItems.addAll(additionalInvoiceItems);
-        additionalInvoiceItems = avaTaxInvoicePluginApi.getAdditionalInvoiceItems(invoice, true, pluginProperties, callContext);
+        additionalInvoiceItems = avaTaxInvoicePluginApi.getAdditionalInvoiceItems(invoice, false, pluginProperties, callContext);
         checkTaxes(additionalInvoiceItems, 0, BigDecimal.ZERO);
     }
 
@@ -191,7 +191,7 @@ public class TestAvaTaxInvoicePluginApi extends AvaTaxRemoteTestBase {
         final InvoiceItem taxableItem1 = TestUtils.buildInvoiceItem(invoice1, InvoiceItemType.RECURRING, new BigDecimal("100"), null);
         invoiceItems1.add(taxableItem1);
         pluginProperties.add(new PluginProperty(String.format("%s_%s", AvaTaxTaxCalculator.TAX_CODE, taxableItem1.getId()), "D9999999", false));
-        List<InvoiceItem> additionalInvoiceItems = avaTaxInvoicePluginApi.getAdditionalInvoiceItems(invoice1, true, pluginProperties, callContext);
+        List<InvoiceItem> additionalInvoiceItems = avaTaxInvoicePluginApi.getAdditionalInvoiceItems(invoice1, false, pluginProperties, callContext);
         // 4 TAX items expected (total $8.5)
         checkTaxes(additionalInvoiceItems, 4, new BigDecimal("8.5"));
 
@@ -201,7 +201,7 @@ public class TestAvaTaxInvoicePluginApi extends AvaTaxRemoteTestBase {
          *       $8.5 Tax items (x4)
          */
         invoiceItems1.addAll(additionalInvoiceItems);
-        additionalInvoiceItems = avaTaxInvoicePluginApi.getAdditionalInvoiceItems(invoice1, true, pluginProperties, callContext);
+        additionalInvoiceItems = avaTaxInvoicePluginApi.getAdditionalInvoiceItems(invoice1, false, pluginProperties, callContext);
         checkTaxes(additionalInvoiceItems, 0, BigDecimal.ZERO);
 
         /*
@@ -215,7 +215,7 @@ public class TestAvaTaxInvoicePluginApi extends AvaTaxRemoteTestBase {
         invoiceItems2.add(repair2);
         Mockito.when(osgiKillbillAPI.getInvoiceUserApi().getInvoiceByInvoiceItem(Mockito.eq(taxableItem1.getId()), Mockito.<TenantContext>any()))
                .thenReturn(invoice1);
-        additionalInvoiceItems = avaTaxInvoicePluginApi.getAdditionalInvoiceItems(invoice2, true, pluginProperties, callContext);
+        additionalInvoiceItems = avaTaxInvoicePluginApi.getAdditionalInvoiceItems(invoice2, false, pluginProperties, callContext);
         // 4 TAX items expected (total -$4.26)
         checkTaxes(additionalInvoiceItems, 4, new BigDecimal("-4.26"));
 
@@ -225,7 +225,7 @@ public class TestAvaTaxInvoicePluginApi extends AvaTaxRemoteTestBase {
          *      -$4.26 Tax items (x4)
          */
         invoiceItems2.addAll(additionalInvoiceItems);
-        additionalInvoiceItems = avaTaxInvoicePluginApi.getAdditionalInvoiceItems(invoice2, true, pluginProperties, callContext);
+        additionalInvoiceItems = avaTaxInvoicePluginApi.getAdditionalInvoiceItems(invoice2, false, pluginProperties, callContext);
         checkTaxes(additionalInvoiceItems, 0, BigDecimal.ZERO);
     }
 

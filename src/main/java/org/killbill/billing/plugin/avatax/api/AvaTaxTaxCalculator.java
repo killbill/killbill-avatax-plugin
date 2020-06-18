@@ -105,8 +105,10 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
 
         try {
             final TransactionModel taxResult = avaTaxClient.createTransaction(taxRequest);
-            dao.addResponse(account.getId(), newInvoice.getId(), kbInvoiceItems, taxResult, clock.getUTCNow(), kbTenantId);
             logger.info("CreateTransaction res: {}", taxResult.simplifiedToString());
+            if (!dryRun) {
+                dao.addResponse(account.getId(), newInvoice.getId(), kbInvoiceItems, taxResult, clock.getUTCNow(), kbTenantId);
+            }
 
             if (taxResult.lines == null || taxResult.lines.length == 0) {
                 logger.info("Nothing to tax for taxable items: {}", kbInvoiceItems.keySet());

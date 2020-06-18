@@ -83,7 +83,9 @@ public class TaxRatesTaxCalculator extends AvaTaxTaxCalculatorBase {
             return ImmutableList.<InvoiceItem>of();
         }
         logger.info("TaxRateResult for account {}: {}", account.getId(), taxRates.simplifiedToString());
-        dao.addResponse(account.getId(), newInvoice.getId(), kbInvoiceItems, taxRates, clock.getUTCNow(), kbTenantId);
+        if (!dryRun) {
+            dao.addResponse(account.getId(), newInvoice.getId(), kbInvoiceItems, taxRates, clock.getUTCNow(), kbTenantId);
+        }
 
         final Collection<InvoiceItem> newTaxItems = new LinkedList<InvoiceItem>();
         for (final InvoiceItem taxableItem : taxableItems.values()) {

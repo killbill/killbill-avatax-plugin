@@ -33,6 +33,8 @@ import org.killbill.billing.plugin.avatax.core.AvaTaxActivator;
 import org.killbill.billing.plugin.util.http.HttpClient;
 import org.killbill.billing.plugin.util.http.InvalidRequest;
 import org.killbill.billing.plugin.util.http.ResponseFormat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -42,6 +44,8 @@ import com.google.common.collect.ImmutableMap;
 public class AvaTaxClient extends HttpClient {
 
     public static final String KILL_BILL_CLIENT_HEADER = "Kill Bill; 2.0; killbill-avatax; 2.0; NA";
+
+    private static final Logger logger = LoggerFactory.getLogger(AvaTaxClient.class);
 
     private final String companyCode;
     private final boolean commitDocuments;
@@ -100,6 +104,7 @@ public class AvaTaxClient extends HttpClient {
                 final AvaTaxErrors errors = deserializeResponse(e.getResponse(), AvaTaxErrors.class, ResponseFormat.JSON);
                 throw new AvaTaxClientException(errors, e);
             } catch (final IOException e1) {
+                logger.warn("Invalid AvaTax request: status={}", e.getResponse() == null ? null : e.getResponse().getStatusCode());
                 throw new AvaTaxClientException(e);
             }
         }

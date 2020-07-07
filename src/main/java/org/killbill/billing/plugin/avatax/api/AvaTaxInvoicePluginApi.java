@@ -77,7 +77,7 @@ public class AvaTaxInvoicePluginApi extends PluginInvoicePluginApi {
         checkForTaxCodes(invoice, pluginProperties, context);
 
         try {
-            return calculator.compute(account, invoice, dryRun, properties, context);
+            return calculator.compute(account, invoice, dryRun, pluginProperties, context);
         } catch (final InvoiceApiException e) {
             // Prevent invoice generation
             throw new RuntimeException(e);

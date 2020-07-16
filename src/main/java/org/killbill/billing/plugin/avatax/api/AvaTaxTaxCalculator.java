@@ -63,6 +63,12 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
     public static final String CUSTOMER_USAGE_TYPE = "customerUsageType";
     public static final String TAX_CODE = "taxCode";
     public static final String LOCATION_CODE = "locationCode";
+    public static final String LOCATION_ADDRESS1 = "locationAddress1";
+    public static final String LOCATION_ADDRESS2 = "locationAddress2";
+    public static final String LOCATION_CITY = "locationCity";
+    public static final String LOCATION_REGION = "locationRegion";
+    public static final String LOCATION_POSTAL_CODE = "locationPostalCode";
+    public static final String LOCATION_COUNTRY = "locationCountry";
 
     private static final Logger logger = LoggerFactory.getLogger(AvaTaxTaxCalculator.class);
 
@@ -229,7 +235,7 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
         }
 
         taxRequest.customerCode = MoreObjects.firstNonNull(account.getExternalKey(), account.getId()).toString();
-        taxRequest.addresses = toAddress(account);
+        taxRequest.addresses = toAddress(account, pluginProperties);
         taxRequest.lines = new LineItemModel[taxableItems.size()];
 
         // Create the individual line items
@@ -319,14 +325,25 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
         return lineItemModel;
     }
 
-    private AddressesModel toAddress(final Account account) {
+    private AddressesModel toAddress(final Account account, final Iterable<PluginProperty> pluginProperties) {
         final AddressLocationInfo addressLocationInfo = new AddressLocationInfo();
-        addressLocationInfo.line1 = account.getAddress1();
-        addressLocationInfo.line2 = account.getAddress2();
-        addressLocationInfo.city = account.getCity();
-        addressLocationInfo.region = account.getStateOrProvince();
-        addressLocationInfo.postalCode = account.getPostalCode();
-        addressLocationInfo.country = account.getCountry();
+
+        final String line1 = PluginProperties.findPluginPropertyValue(LOCATION_ADDRESS1, pluginProperties);
+        if (line1 != null) {
+            addressLocationInfo.line1 = line1;
+            addressLocationInfo.line2 = PluginProperties.findPluginPropertyValue(LOCATION_ADDRESS2, pluginProperties);
+            addressLocationInfo.city = PluginProperties.findPluginPropertyValue(LOCATION_CITY, pluginProperties);
+            addressLocationInfo.region = PluginProperties.findPluginPropertyValue(LOCATION_REGION, pluginProperties);
+            addressLocationInfo.postalCode = PluginProperties.findPluginPropertyValue(LOCATION_POSTAL_CODE, pluginProperties);
+            addressLocationInfo.country = PluginProperties.findPluginPropertyValue(LOCATION_COUNTRY, pluginProperties);
+        } else {
+            addressLocationInfo.line1 = account.getAddress1();
+            addressLocationInfo.line2 = account.getAddress2();
+            addressLocationInfo.city = account.getCity();
+            addressLocationInfo.region = account.getStateOrProvince();
+            addressLocationInfo.postalCode = account.getPostalCode();
+            addressLocationInfo.country = account.getCountry();
+        }
 
         // You must provide either a valid postal code, line1 + city + region, or line1 + postal code
         final boolean valid = addressLocationInfo.postalCode != null ||

@@ -25,25 +25,19 @@ import java.util.List;
 import java.util.UUID;
 
 import org.killbill.billing.account.api.Account;
-import org.killbill.billing.catalog.api.CatalogApiException;
-import org.killbill.billing.catalog.api.CatalogUserApi;
 import org.killbill.billing.catalog.api.Currency;
-import org.killbill.billing.catalog.api.StaticCatalog;
 import org.killbill.billing.invoice.api.Invoice;
 import org.killbill.billing.invoice.api.InvoiceItem;
 import org.killbill.billing.invoice.api.InvoiceItemType;
 import org.killbill.billing.invoice.api.InvoiceUserApi;
 import org.killbill.billing.osgi.libs.killbill.OSGIConfigPropertiesService;
 import org.killbill.billing.osgi.libs.killbill.OSGIKillbillAPI;
-import org.killbill.billing.osgi.libs.killbill.OSGIKillbillLogService;
 import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.TestUtils;
 import org.killbill.billing.plugin.api.PluginCallContext;
 import org.killbill.billing.plugin.avatax.AvaTaxRemoteTestBase;
 import org.killbill.billing.plugin.avatax.core.AvaTaxActivator;
-import org.killbill.billing.plugin.avatax.core.AvaTaxConfigurationHandler;
 import org.killbill.billing.plugin.avatax.core.TaxRatesConfigurationHandler;
-import org.killbill.billing.util.api.CustomFieldUserApi;
 import org.killbill.billing.util.callcontext.CallContext;
 import org.killbill.billing.util.callcontext.TenantContext;
 import org.killbill.clock.Clock;
@@ -80,16 +74,13 @@ public class TestTaxRatesInvoicePluginApi extends AvaTaxRemoteTestBase {
         osgiKillbillAPI = TestUtils.buildOSGIKillbillAPI(account);
         Mockito.when(osgiKillbillAPI.getInvoiceUserApi()).thenReturn(Mockito.mock(InvoiceUserApi.class));
 
-        final OSGIKillbillLogService osgiKillbillLogService = TestUtils.buildLogService();
         final TaxRatesConfigurationHandler taxRatesConfigurationHandler = new TaxRatesConfigurationHandler(AvaTaxActivator.PLUGIN_NAME,
-                                                                                                           osgiKillbillAPI,
-                                                                                                           osgiKillbillLogService);
+                                                                                                           osgiKillbillAPI);
         taxRatesConfigurationHandler.setDefaultConfigurable(taxRatesClient);
         taxRatesInvoicePluginApi = new TaxRatesInvoicePluginApi(taxRatesConfigurationHandler,
                                                                 dao,
                                                                 osgiKillbillAPI,
                                                                 new OSGIConfigPropertiesService(Mockito.mock(BundleContext.class)),
-                                                                osgiKillbillLogService,
                                                                 clock);
     }
 

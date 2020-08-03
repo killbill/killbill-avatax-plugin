@@ -11,8 +11,6 @@ jobs:
       - image: killbill/kbbuild:0.7.0
     steps:
       - checkout
-      - restore_cache:
-          key: v1-dependencies-{{ .Branch }}-{{ checksum "pom.xml" }}
       - run:
           name: Setup dependencies
           command: |
@@ -29,11 +27,11 @@ jobs:
                 fi
               done
             fi
-      - run: mvn -DskipTests=true clean install dependency:go-offline
+      - run: mvn -DskipTests=true clean install
       - save_cache:
           paths:
             - ~/.m2
-          key: v1-dependencies-{{ .Branch }}-{{ checksum "pom.xml" }}
+          key: v1-dependencies-{{ .Revision }}
 
   test-h2:
     <<: *defaults
@@ -42,7 +40,18 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: v1-dependencies-{{ .Branch }}-{{ checksum "pom.xml" }}
+          key: v1-dependencies-{{ .Revision }}
+      - run:
+          name: Setup credentials
+          command: |
+            cat <<-EOS>src/test/resources/avatax.properties
+            org.killbill.billing.plugin.avatax.taxratesapi.url=https://sandbox-rest.avatax.com/api/v2
+            org.killbill.billing.plugin.avatax.taxratesapi.accountId=${AVATAX_TAXRATES_ACCOUNT_ID}
+            org.killbill.billing.plugin.avatax.taxratesapi.licenseKey=${AVATAX_TAXRATES_LICENSE_KEY}
+            org.killbill.billing.plugin.avatax.url=https://sandbox-rest.avatax.com/api/v2
+            org.killbill.billing.plugin.avatax.accountId=${AVATAX_ACCOUNT_ID}
+            org.killbill.billing.plugin.avatax.licenseKey=${AVATAX_LICENSE_KEY}
+            EOS
       - run: mvn clean install -Ptravis
       - run:
           name: Save test results
@@ -62,8 +71,19 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: v1-dependencies-{{ .Branch }}-{{ checksum "pom.xml" }}
-      - run: mvn clean install -Pmysql
+          key: v1-dependencies-{{ .Revision }}
+      - run:
+          name: Setup credentials
+          command: |
+            cat <<-EOS>src/test/resources/avatax.properties
+            org.killbill.billing.plugin.avatax.taxratesapi.url=https://sandbox-rest.avatax.com/api/v2
+            org.killbill.billing.plugin.avatax.taxratesapi.accountId=${AVATAX_TAXRATES_ACCOUNT_ID}
+            org.killbill.billing.plugin.avatax.taxratesapi.licenseKey=${AVATAX_TAXRATES_LICENSE_KEY}
+            org.killbill.billing.plugin.avatax.url=https://sandbox-rest.avatax.com/api/v2
+            org.killbill.billing.plugin.avatax.accountId=${AVATAX_ACCOUNT_ID}
+            org.killbill.billing.plugin.avatax.licenseKey=${AVATAX_LICENSE_KEY}
+            EOS
+      - run: mvn clean install -Pintegration-mysql
       - run:
           name: Save test results
           command: |
@@ -82,8 +102,19 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: v1-dependencies-{{ .Branch }}-{{ checksum "pom.xml" }}
-      - run: mvn clean install -Ppostgresql
+          key: v1-dependencies-{{ .Revision }}
+      - run:
+          name: Setup credentials
+          command: |
+            cat <<-EOS>src/test/resources/avatax.properties
+            org.killbill.billing.plugin.avatax.taxratesapi.url=https://sandbox-rest.avatax.com/api/v2
+            org.killbill.billing.plugin.avatax.taxratesapi.accountId=${AVATAX_TAXRATES_ACCOUNT_ID}
+            org.killbill.billing.plugin.avatax.taxratesapi.licenseKey=${AVATAX_TAXRATES_LICENSE_KEY}
+            org.killbill.billing.plugin.avatax.url=https://sandbox-rest.avatax.com/api/v2
+            org.killbill.billing.plugin.avatax.accountId=${AVATAX_ACCOUNT_ID}
+            org.killbill.billing.plugin.avatax.licenseKey=${AVATAX_LICENSE_KEY}
+            EOS
+      - run: mvn clean install -Pintegration-postgresql
       - run:
           name: Save test results
           command: |
@@ -94,6 +125,100 @@ jobs:
           path: ~/junit
       - store_artifacts:
           path: ~/junit
+
+  integration-tests:
+    <<: *defaults
+    docker:
+      - image: killbill/killbill:0.22.10
+        environment:
+          - KILLBILL_CATALOG_URI=SpyCarAdvanced.xml
+          - KILLBILL_PAYMENT_PLUGIN_TIMEOUT=5s
+          - KILLBILL_DAO_URL=jdbc:mysql://127.0.0.1:3306/killbill
+          - KILLBILL_DAO_USER=root
+          - KILLBILL_DAO_PASSWORD=root
+          - KILLBILL_SERVER_TEST_MODE=true
+          - KILLBILL_INVOICE_SANITY_SAFETY_BOUND_ENABLED=false
+          - KILLBILL_INVOICE_MAX_DAILY_NUMBER_OF_ITEMS_SAFETY_BOUND=-1
+      - image: killbill/mariadb:0.22
+        environment:
+          - MYSQL_ROOT_PASSWORD=root
+    steps:
+      - checkout
+      # The main Docker image is now Kill Bill, not the build one
+      - run: sudo mkdir -p /home/killbill && sudo chown tomcat:tomcat /home/killbill
+      - restore_cache:
+          key: v1-dependencies-{{ .Revision }}
+      - run:
+          name: Install plugin
+          command: |
+            kpm install_java_plugin avatax --from-source-file=/home/killbill/.m2/repository/org/kill-bill/billing/plugin/java/avatax-plugin/*-SNAPSHOT/avatax-plugin-*-SNAPSHOT.jar --destination=/var/lib/killbill/bundles
+      - run:
+          name: Setup DDL
+          command: |
+            set +e
+            count=0
+            until mysqladmin ping -h 127.0.0.1 -u root --password=root --silent; do
+              if [[ "$count" == "25" ]]; then
+                exit 1
+              fi
+              (( count++ ))
+              printf '.'
+              sleep 5
+            done
+            set -e
+            mysql -uroot -proot -h 127.0.0.1 -D killbill < src/main/resources/ddl.sql
+      - run:
+          name: Setup integration tests
+          command: |
+            # Get rid of message "Warning: Permanently added the RSA host key for IP address..." further down
+            ssh git@github.com || true
+
+            mkdir -p /home/killbill/killbill-integration-tests
+            git clone https://github.com/killbill/killbill-integration-tests.git /home/killbill/killbill-integration-tests
+            pushd /home/killbill/killbill-integration-tests
+            if [ "${CIRCLE_BRANCH}" != "master" ]; then
+              if [ -n "$(git ls-remote --heads https://github.com/killbill/killbill-integration-tests.git ${CIRCLE_BRANCH})" ]; then
+                echo "Switching to branch ${CIRCLE_BRANCH}"
+                git checkout -b ${CIRCLE_BRANCH} origin/${CIRCLE_BRANCH}
+              else
+                echo "killbill-integration-tests doesn't have a branch ${CIRCLE_BRANCH}, staying on master"
+              fi
+            fi
+
+            sudo apt-get update
+            sudo apt-get -y install ruby
+            sudo gem install bundler
+            bundle install --jobs=4 --retry=3 --path=vendor/bundle
+      - run:
+          name: Run integration tests
+          command: |
+            /var/lib/killbill/killbill.sh &
+
+            set +e
+            count=0
+            until $(curl --output /dev/null --silent --fail http://127.0.0.1:8080/1.0/healthcheck); do
+              if [[ "$count" == "25" ]]; then
+                exit 1
+              fi
+              (( count++ ))
+              printf '.'
+              sleep 5
+            done
+            curl -v \
+                 -X POST \
+                 -u admin:password \
+                 -H 'Content-Type: application/json' \
+                 -H 'X-Killbill-CreatedBy: CircleCI' \
+                 -d '{"apiKey": "bob", "apiSecret": "lazar"}' \
+                 "http://127.0.0.1:8080/1.0/kb/tenants?useGlobalDefault=true"
+
+            set -e
+            cd /home/killbill/killbill-integration-tests
+            bundle exec rake ci:avatax
+      - store_test_results:
+          path: /home/killbill/killbill-integration-tests/test/reports/
+      - store_artifacts:
+          path: /home/killbill/killbill-integration-tests/test/reports/
 
 workflows:
   version: 2
@@ -109,3 +234,6 @@ workflows:
       - test-postgresql:
           requires:
             - build
+      - integration-tests:
+          requires:
+            - test-mysql

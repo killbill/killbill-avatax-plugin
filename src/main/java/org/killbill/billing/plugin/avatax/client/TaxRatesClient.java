@@ -1,7 +1,7 @@
 /*
- * Copyright 2015-2020 Groupon, Inc
+ * Copyright 2014-2020 Groupon, Inc
  * Copyright 2020-2020 Equinix, Inc
- * Copyright 2015-2020 The Billing Project, LLC
+ * Copyright 2014-2020 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -20,8 +20,6 @@ package org.killbill.billing.plugin.avatax.client;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
@@ -35,7 +33,6 @@ import org.killbill.billing.plugin.util.http.InvalidRequest;
 import org.killbill.billing.plugin.util.http.ResponseFormat;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.io.BaseEncoding;
 
 public class TaxRatesClient extends HttpClient {
 
@@ -110,12 +107,7 @@ public class TaxRatesClient extends HttpClient {
         } catch (final InvalidRequest e) {
             String message = e.getMessage();
             if (e.getResponse() != null) {
-                String responseBody = null;
-                try {
-                    responseBody = e.getResponse().getResponseBody();
-                } catch (final IOException ignored) {
-                }
-
+                final String responseBody = e.getResponse().getResponseBody();
                 if (responseBody != null) {
                     message += "[" + responseBody + "]";
                 }

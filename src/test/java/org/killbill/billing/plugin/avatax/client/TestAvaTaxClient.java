@@ -1,7 +1,7 @@
 /*
- * Copyright 2015-2020 Groupon, Inc
+ * Copyright 2014-2020 Groupon, Inc
  * Copyright 2020-2020 Equinix, Inc
- * Copyright 2015-2020 The Billing Project, LLC
+ * Copyright 2014-2020 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -71,9 +71,9 @@ public class TestAvaTaxClient extends AvaTaxRemoteTestBase {
         Assert.assertEquals(result.status, "Committed");
         Assert.assertEquals(result.type, "SalesInvoice");
         Assert.assertEquals(result.lines.length, 1);
-        Assert.assertEquals(result.lines[0].details.length, 1);
+        Assert.assertTrue(result.lines[0].details.length >= 1);
         Assert.assertEquals(result.addresses.length, 1);
-        Assert.assertEquals(result.summary.length, 1);
+        Assert.assertTrue(result.summary.length >= 1);
         // Diagnostic level
         Assert.assertTrue(result.messages.length > 1);
     }

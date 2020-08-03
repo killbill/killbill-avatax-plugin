@@ -1,7 +1,7 @@
 /*
- * Copyright 2015-2020 Groupon, Inc
+ * Copyright 2014-2020 Groupon, Inc
  * Copyright 2020-2020 Equinix, Inc
- * Copyright 2015-2020 The Billing Project, LLC
+ * Copyright 2014-2020 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -39,7 +39,7 @@ public abstract class ClientUtils {
 
     public static Boolean getBooleanProperty(final Properties properties, final String key) {
         final String property = properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + key);
-        return Strings.isNullOrEmpty(property) ? true : Boolean.valueOf(property);
+        return Strings.isNullOrEmpty(property) || Boolean.parseBoolean(property);
     }
 
     public static ObjectMapper createObjectMapper() {

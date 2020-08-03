@@ -1,7 +1,7 @@
 /*
- * Copyright 2015-2020 Groupon, Inc
+ * Copyright 2014-2020 Groupon, Inc
  * Copyright 2020-2020 Equinix, Inc
- * Copyright 2015-2020 The Billing Project, LLC
+ * Copyright 2014-2020 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -18,7 +18,10 @@
 
 package org.killbill.billing.plugin.avatax.client.model;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 // https://developer.avalara.com/api-reference/avatax/rest/v2/models/TransactionSummary/
+@SuppressFBWarnings("UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD")
 public class TransactionSummary {
 
     public double rate;

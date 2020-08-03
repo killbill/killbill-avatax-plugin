@@ -1,10 +1,9 @@
 # AvaTax plugin
+![Maven Central](https://img.shields.io/maven-central/v/org.kill-bill.billing.plugin.java/avatax-plugin?color=blue&label=Maven%20Central)
 
 Kill Bill tax plugin for [Avalara AvaTax](http://www.avalara.com/products/avatax/) and [Avalara Tax Rates API](http://taxratesapi.avalara.com/).
 
 This integration delegates computation of sales taxes to Avalara, which will appear directly on Kill Bill invoices.
-
-Release builds are available on [Maven Central](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.kill-bill.billing.plugin.java%22%20AND%20a%3A%22avatax-plugin%22) with coordinates `org.kill-bill.billing.plugin.java:avatax-plugin`.
 
 ## Kill Bill compatibility
 
@@ -18,6 +17,8 @@ Release builds are available on [Maven Central](http://search.maven.org/#search%
 | 0.6.y          | 0.20.z            | Legacy REST API |
 | 0.7.y          | 0.22.z            | Legacy REST API |
 | 0.8.y          | 0.22.z            | REST API        |
+
+We've upgraded numerous dependencies in 0.8.x (required for Java 11 support).
 
 ## Requirements
 
@@ -171,3 +172,7 @@ curl -v \
      -H 'X-Killbill-CreatedBy: admin' \
      http://127.0.0.1:8080/plugins/killbill-avatax/taxCodes/Super
 ```
+
+## About
+
+Kill Bill is the leading Open-Source Subscription Billing & Payments Platform. For more information about the project, go to https://killbill.io/.

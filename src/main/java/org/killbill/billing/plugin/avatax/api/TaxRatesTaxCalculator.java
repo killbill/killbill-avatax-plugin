@@ -1,7 +1,7 @@
 /*
- * Copyright 2015-2020 Groupon, Inc
+ * Copyright 2014-2020 Groupon, Inc
  * Copyright 2020-2020 Equinix, Inc
- * Copyright 2015-2020 The Billing Project, LLC
+ * Copyright 2014-2020 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -118,7 +118,7 @@ public class TaxRatesTaxCalculator extends AvaTaxTaxCalculatorBase {
                                                                                         new Function<PluginProperty, String>() {
                                                                                             @Override
                                                                                             public String apply(final PluginProperty pluginProperty) {
-                                                                                                return pluginProperty.getValue().toString();
+                                                                                                return pluginProperty == null ? "" : pluginProperty.getValue().toString();
                                                                                             }
                                                                                         }));
 

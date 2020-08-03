@@ -1,6 +1,7 @@
 /*
- * Copyright 2014-2015 Groupon, Inc
- * Copyright 2014-2015 The Billing Project, LLC
+ * Copyright 2014-2020 Groupon, Inc
+ * Copyright 2020-2020 Equinix, Inc
+ * Copyright 2014-2020 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -54,8 +55,8 @@ public class AvaTaxActivator extends KillbillActivatorBase {
         final AvaTaxDao dao = new AvaTaxDao(dataSource.getDataSource());
         final Clock clock = new DefaultClock();
 
-        avaTaxConfigurationHandler = new AvaTaxConfigurationHandler(PLUGIN_NAME, killbillAPI, logService);
-        taxRatesConfigurationHandler = new TaxRatesConfigurationHandler(PLUGIN_NAME, killbillAPI, logService);
+        avaTaxConfigurationHandler = new AvaTaxConfigurationHandler(PLUGIN_NAME, killbillAPI);
+        taxRatesConfigurationHandler = new TaxRatesConfigurationHandler(PLUGIN_NAME, killbillAPI);
 
         // Avalara AvaTax API
         final AvaTaxClient globalAvataxClient = avaTaxConfigurationHandler.createConfigurable(configProperties.getProperties());
@@ -70,7 +71,6 @@ public class AvaTaxActivator extends KillbillActivatorBase {
                                                                               dao,
                                                                               killbillAPI,
                                                                               configProperties,
-                                                                              logService,
                                                                               clock);
         registerInvoicePluginApi(context, invoicePluginApi);
 
@@ -82,7 +82,6 @@ public class AvaTaxActivator extends KillbillActivatorBase {
         // Register the servlet
         final PluginApp pluginApp = new PluginAppBuilder(PLUGIN_NAME,
                                                          killbillAPI,
-                                                         logService,
                                                          dataSource,
                                                          super.clock,
                                                          configProperties).withRouteClass(AvalaraHealthcheckServlet.class)

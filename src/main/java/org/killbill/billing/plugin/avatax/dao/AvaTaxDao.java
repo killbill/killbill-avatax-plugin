@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
@@ -306,11 +307,11 @@ public class AvaTaxDao extends PluginDao {
     private void kbInvoiceItemsIdsFromString(@Nullable final String kbInvoiceItemsIdsAsString, final Map<UUID, Set<UUID>> kbInvoiceItemsIds) throws IOException {
         if (Strings.emptyToNull(kbInvoiceItemsIdsAsString) != null) {
             final Map<UUID, Set<UUID>> kbInvoiceItemsIdsAsMap = objectMapper.readValue(kbInvoiceItemsIdsAsString, new TypeReference<Map<UUID, Set<UUID>>>() {});
-            for (final UUID kbInvoiceItemId : kbInvoiceItemsIdsAsMap.keySet()) {
-                if (kbInvoiceItemsIds.get(kbInvoiceItemId) == null) {
-                    kbInvoiceItemsIds.put(kbInvoiceItemId, new HashSet<UUID>());
+            for (final Entry<UUID, Set<UUID>> entry : kbInvoiceItemsIdsAsMap.entrySet()) {
+                if (kbInvoiceItemsIds.get(entry.getKey()) == null) {
+                    kbInvoiceItemsIds.put(entry.getKey(), new HashSet<UUID>());
                 }
-                kbInvoiceItemsIds.get(kbInvoiceItemId).addAll(kbInvoiceItemsIdsAsMap.get(kbInvoiceItemId));
+                kbInvoiceItemsIds.get(entry.getKey()).addAll(entry.getValue());
             }
         }
     }
@@ -321,6 +322,9 @@ public class AvaTaxDao extends PluginDao {
                                                                                                                         @Override
                                                                                                                         public Set<UUID> apply(final Iterable<InvoiceItem> invoiceItems) {
                                                                                                                             final Set<UUID> invoiceItemIds = new HashSet<UUID>();
+                                                                                                                            if (invoiceItems == null) {
+                                                                                                                                return invoiceItemIds;
+                                                                                                                            }
                                                                                                                             for (final InvoiceItem invoiceItem : invoiceItems) {
                                                                                                                                 invoiceItemIds.add(invoiceItem.getId());
                                                                                                                             }

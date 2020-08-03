@@ -118,7 +118,7 @@ public class TaxRatesTaxCalculator extends AvaTaxTaxCalculatorBase {
                                                                                         new Function<PluginProperty, String>() {
                                                                                             @Override
                                                                                             public String apply(final PluginProperty pluginProperty) {
-                                                                                                return pluginProperty.getValue().toString();
+                                                                                                return pluginProperty == null ? "" : pluginProperty.getValue().toString();
                                                                                             }
                                                                                         }));
 

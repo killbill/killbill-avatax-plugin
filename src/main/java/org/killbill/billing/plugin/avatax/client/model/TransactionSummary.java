@@ -18,7 +18,10 @@
 
 package org.killbill.billing.plugin.avatax.client.model;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 // https://developer.avalara.com/api-reference/avatax/rest/v2/models/TransactionSummary/
+@SuppressFBWarnings("UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD")
 public class TransactionSummary {
 
     public double rate;

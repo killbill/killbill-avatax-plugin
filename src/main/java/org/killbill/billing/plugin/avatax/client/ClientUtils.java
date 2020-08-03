@@ -39,7 +39,7 @@ public abstract class ClientUtils {
 
     public static Boolean getBooleanProperty(final Properties properties, final String key) {
         final String property = properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + key);
-        return Strings.isNullOrEmpty(property) ? true : Boolean.valueOf(property);
+        return Strings.isNullOrEmpty(property) || Boolean.parseBoolean(property);
     }
 
     public static ObjectMapper createObjectMapper() {

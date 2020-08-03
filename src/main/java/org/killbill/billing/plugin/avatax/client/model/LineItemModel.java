@@ -20,7 +20,10 @@ package org.killbill.billing.plugin.avatax.client.model;
 
 import java.math.BigDecimal;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 // https://developer.avalara.com/api-reference/avatax/rest/v2/models/LineItemModel/
+@SuppressFBWarnings("UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD")
 public class LineItemModel {
 
     public String number;

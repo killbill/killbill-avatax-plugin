@@ -20,6 +20,9 @@ package org.killbill.billing.plugin.avatax.client.model;
 
 import java.util.Arrays;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings("UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD")
 public class AvaTaxErrors {
 
     public AvaTaxError error;

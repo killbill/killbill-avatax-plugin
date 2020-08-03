@@ -93,7 +93,7 @@ public class AvaTaxInvoicePluginApi extends PluginInvoicePluginApi {
                                                                        new Predicate<CustomField>() {
                                                                            @Override
                                                                            public boolean apply(final CustomField customField) {
-                                                                               return AvaTaxTaxCalculator.CUSTOMER_USAGE_TYPE.equals(customField.getFieldName());
+                                                                               return customField != null && AvaTaxTaxCalculator.CUSTOMER_USAGE_TYPE.equals(customField.getFieldName());
                                                                            }
                                                                        }).orNull();
 
@@ -122,7 +122,8 @@ public class AvaTaxInvoicePluginApi extends PluginInvoicePluginApi {
                                                                                                        new Predicate<CustomField>() {
                                                                                                            @Override
                                                                                                            public boolean apply(final CustomField customField) {
-                                                                                                               return AvaTaxTaxCalculator.TAX_CODE.equals(customField.getFieldName()) &&
+                                                                                                               return customField != null &&
+                                                                                                                      AvaTaxTaxCalculator.TAX_CODE.equals(customField.getFieldName()) &&
                                                                                                                       invoiceItemIds.contains(customField.getObjectId());
                                                                                                            }
                                                                                                        });

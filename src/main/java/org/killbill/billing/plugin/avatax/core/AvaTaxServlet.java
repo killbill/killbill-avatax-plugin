@@ -68,7 +68,7 @@ public class AvaTaxServlet {
                                                                                               new Function<AvataxTaxCodesRecord, TaxCodeJson>() {
                                                                                                   @Override
                                                                                                   public TaxCodeJson apply(final AvataxTaxCodesRecord record) {
-                                                                                                      return new TaxCodeJson(record.getProductName(), record.getTaxCode());
+                                                                                                      return record == null ? null : new TaxCodeJson(record.getProductName(), record.getTaxCode());
                                                                                                   }
                                                                                               });
         return Results.ok(taxCodes).type(MediaType.json);

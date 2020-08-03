@@ -129,7 +129,6 @@ jobs:
   integration-tests:
     <<: *defaults
     docker:
-      - image: killbill/kbbuild:0.7.0
       - image: killbill/killbill:0.22.10
         environment:
           - KILLBILL_CATALOG_URI=SpyCarAdvanced.xml
@@ -145,8 +144,14 @@ jobs:
           - MYSQL_ROOT_PASSWORD=root
     steps:
       - checkout
+      # The main Docker image is now Kill Bill, not the build one
+      - run: sudo mkdir -p /home/killbill && sudo chown tomcat:tomcat /home/killbill
       - restore_cache:
           key: v1-dependencies-{{ .Revision }}
+      - run:
+          name: Install plugin
+          command: |
+            kpm install_java_plugin avatax --from-source-file=/home/killbill/.m2/repository/org/kill-bill/billing/plugin/java/avatax-plugin/*-SNAPSHOT/avatax-plugin-*-SNAPSHOT.jar --destination=/var/lib/killbill/bundles
       - run:
           name: Setup DDL
           command: |
@@ -163,28 +168,7 @@ jobs:
             set -e
             mysql -uroot -proot -h 127.0.0.1 -D killbill < src/main/resources/ddl.sql
       - run:
-          name: Setup Kill Bill
-          command: |
-            set +e
-            count=0
-            until $(curl --output /dev/null --silent --fail http://127.0.0.1:8080/1.0/healthcheck); do
-              if [[ "$count" == "25" ]]; then
-                exit 1
-              fi
-              (( count++ ))
-              printf '.'
-              sleep 5
-            done
-            set -e
-            curl -v \
-                 -X POST \
-                 -u admin:password \
-                 -H 'Content-Type: application/json' \
-                 -H 'X-Killbill-CreatedBy: CircleCI' \
-                 -d '{"apiKey": "bob", "apiSecret": "lazar"}' \
-                 "http://127.0.0.1:8080/1.0/kb/tenants?useGlobalDefault=true"
-      - run:
-          name: Run integration tests
+          name: Setup integration tests
           command: |
             # Get rid of message "Warning: Permanently added the RSA host key for IP address..." further down
             ssh git@github.com || true
@@ -201,17 +185,40 @@ jobs:
               fi
             fi
 
-            source /usr/share/rvm/scripts/rvm
-            rvm use ruby-2.4.2
+            sudo apt-get update
+            sudo apt-get -y install ruby
+            sudo gem install bundler
             bundle install --jobs=4 --retry=3 --path=vendor/bundle
+      - run:
+          name: Run integration tests
+          command: |
+            /var/lib/killbill/killbill.sh &
+
+            set +e
+            count=0
+            until $(curl --output /dev/null --silent --fail http://127.0.0.1:8080/1.0/healthcheck); do
+              if [[ "$count" == "25" ]]; then
+                exit 1
+              fi
+              (( count++ ))
+              printf '.'
+              sleep 5
+            done
+            curl -v \
+                 -X POST \
+                 -u admin:password \
+                 -H 'Content-Type: application/json' \
+                 -H 'X-Killbill-CreatedBy: CircleCI' \
+                 -d '{"apiKey": "bob", "apiSecret": "lazar"}' \
+                 "http://127.0.0.1:8080/1.0/kb/tenants?useGlobalDefault=true"
 
             set -e
-            bundle exec rake test:plugins:avatax | tee /tmp/test-results/test.txt 2>&1
+            cd /home/killbill/killbill-integration-tests
+            bundle exec rake ci:avatax
       - store_test_results:
-          path: test/reports/
+          path: /home/killbill/killbill-integration-tests/test/reports/
       - store_artifacts:
-          path: /tmp/test-results
-          destination: test-results
+          path: /home/killbill/killbill-integration-tests/test/reports/
 
 workflows:
   version: 2

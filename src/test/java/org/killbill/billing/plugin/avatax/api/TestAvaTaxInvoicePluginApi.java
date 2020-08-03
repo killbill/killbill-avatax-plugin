@@ -52,6 +52,7 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+// Note: the test assumes all California authorities are set up to collect sales and use tax (270+)
 public class TestAvaTaxInvoicePluginApi extends AvaTaxRemoteTestBase {
 
     private OSGIKillbillAPI osgiKillbillAPI;
@@ -82,7 +83,7 @@ public class TestAvaTaxInvoicePluginApi extends AvaTaxRemoteTestBase {
         final CatalogUserApi catalogUserApi = Mockito.mock(CatalogUserApi.class);
         final StaticCatalog staticCatalog = Mockito.mock(StaticCatalog.class);
         Mockito.doThrow(CatalogApiException.class).when(staticCatalog).findPlan(Mockito.anyString());
-        Mockito.when(catalogUserApi.getCurrentCatalog(Mockito.anyString(), Mockito.<TenantContext>any())).thenReturn(staticCatalog);
+        Mockito.when(catalogUserApi.getCurrentCatalog(Mockito.any(), Mockito.<TenantContext>any())).thenReturn(staticCatalog);
         Mockito.when(osgiKillbillAPI.getCatalogUserApi()).thenReturn(catalogUserApi);
 
         final AvaTaxConfigurationHandler avaTaxConfigurationHandler = new AvaTaxConfigurationHandler(AvaTaxActivator.PLUGIN_NAME,

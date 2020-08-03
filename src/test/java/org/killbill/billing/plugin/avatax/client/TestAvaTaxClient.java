@@ -71,9 +71,9 @@ public class TestAvaTaxClient extends AvaTaxRemoteTestBase {
         Assert.assertEquals(result.status, "Committed");
         Assert.assertEquals(result.type, "SalesInvoice");
         Assert.assertEquals(result.lines.length, 1);
-        Assert.assertEquals(result.lines[0].details.length, 1);
+        Assert.assertTrue(result.lines[0].details.length >= 1);
         Assert.assertEquals(result.addresses.length, 1);
-        Assert.assertEquals(result.summary.length, 1);
+        Assert.assertTrue(result.summary.length >= 1);
         // Diagnostic level
         Assert.assertTrue(result.messages.length > 1);
     }

@@ -35,7 +35,6 @@ import org.killbill.billing.invoice.api.InvoiceItemType;
 import org.killbill.billing.invoice.api.InvoiceUserApi;
 import org.killbill.billing.osgi.libs.killbill.OSGIConfigPropertiesService;
 import org.killbill.billing.osgi.libs.killbill.OSGIKillbillAPI;
-import org.killbill.billing.osgi.libs.killbill.OSGIKillbillLogService;
 import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.TestUtils;
 import org.killbill.billing.plugin.api.PluginCallContext;
@@ -86,16 +85,13 @@ public class TestAvaTaxInvoicePluginApi extends AvaTaxRemoteTestBase {
         Mockito.when(catalogUserApi.getCurrentCatalog(Mockito.anyString(), Mockito.<TenantContext>any())).thenReturn(staticCatalog);
         Mockito.when(osgiKillbillAPI.getCatalogUserApi()).thenReturn(catalogUserApi);
 
-        final OSGIKillbillLogService osgiKillbillLogService = TestUtils.buildLogService();
         final AvaTaxConfigurationHandler avaTaxConfigurationHandler = new AvaTaxConfigurationHandler(AvaTaxActivator.PLUGIN_NAME,
-                                                                                                     osgiKillbillAPI,
-                                                                                                     osgiKillbillLogService);
+                                                                                                     osgiKillbillAPI);
         avaTaxConfigurationHandler.setDefaultConfigurable(client);
         avaTaxInvoicePluginApi = new AvaTaxInvoicePluginApi(avaTaxConfigurationHandler,
                                                             dao,
                                                             osgiKillbillAPI,
                                                             new OSGIConfigPropertiesService(Mockito.mock(BundleContext.class)),
-                                                            osgiKillbillLogService,
                                                             clock);
     }
 

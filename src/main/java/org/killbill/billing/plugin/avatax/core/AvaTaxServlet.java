@@ -1,7 +1,7 @@
 /*
- * Copyright 2015-2020 Groupon, Inc
+ * Copyright 2014-2020 Groupon, Inc
  * Copyright 2020-2020 Equinix, Inc
- * Copyright 2015-2020 The Billing Project, LLC
+ * Copyright 2014-2020 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -20,7 +20,6 @@ package org.killbill.billing.plugin.avatax.core;
 
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Optional;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -35,7 +34,6 @@ import org.jooby.mvc.GET;
 import org.jooby.mvc.Local;
 import org.jooby.mvc.POST;
 import org.jooby.mvc.Path;
-import org.jooby.mvc.Produces;
 import org.killbill.billing.osgi.libs.killbill.OSGIKillbillClock;
 import org.killbill.billing.plugin.avatax.dao.AvaTaxDao;
 import org.killbill.billing.plugin.avatax.dao.gen.tables.records.AvataxTaxCodesRecord;
@@ -43,7 +41,6 @@ import org.killbill.billing.tenant.api.Tenant;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.inject.Inject;

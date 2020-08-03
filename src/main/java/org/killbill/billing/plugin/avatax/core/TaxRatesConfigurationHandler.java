@@ -1,6 +1,7 @@
 /*
- * Copyright 2015 Groupon, Inc
- * Copyright 2015 The Billing Project, LLC
+ * Copyright 2014-2020 Groupon, Inc
+ * Copyright 2020-2020 Equinix, Inc
+ * Copyright 2014-2020 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -21,16 +22,14 @@ import java.security.GeneralSecurityException;
 import java.util.Properties;
 
 import org.killbill.billing.osgi.libs.killbill.OSGIKillbillAPI;
-import org.killbill.billing.osgi.libs.killbill.OSGIKillbillLogService;
 import org.killbill.billing.plugin.api.notification.PluginTenantConfigurableConfigurationHandler;
 import org.killbill.billing.plugin.avatax.client.TaxRatesClient;
 
 public class TaxRatesConfigurationHandler extends PluginTenantConfigurableConfigurationHandler<TaxRatesClient> {
 
     public TaxRatesConfigurationHandler(final String pluginName,
-                                        final OSGIKillbillAPI osgiKillbillAPI,
-                                        final OSGIKillbillLogService osgiKillbillLogService) {
-        super(pluginName, osgiKillbillAPI, osgiKillbillLogService);
+                                        final OSGIKillbillAPI osgiKillbillAPI) {
+        super(pluginName, osgiKillbillAPI);
     }
 
     @Override

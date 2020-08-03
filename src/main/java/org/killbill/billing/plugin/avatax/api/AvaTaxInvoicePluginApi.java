@@ -36,7 +36,6 @@ import org.killbill.billing.invoice.api.InvoiceApiException;
 import org.killbill.billing.invoice.api.InvoiceItem;
 import org.killbill.billing.osgi.libs.killbill.OSGIConfigPropertiesService;
 import org.killbill.billing.osgi.libs.killbill.OSGIKillbillAPI;
-import org.killbill.billing.osgi.libs.killbill.OSGIKillbillLogService;
 import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.api.PluginProperties;
 import org.killbill.billing.plugin.api.invoice.PluginInvoicePluginApi;
@@ -60,9 +59,8 @@ public class AvaTaxInvoicePluginApi extends PluginInvoicePluginApi {
                                   final AvaTaxDao dao,
                                   final OSGIKillbillAPI killbillApi,
                                   final OSGIConfigPropertiesService configProperties,
-                                  final OSGIKillbillLogService logService,
                                   final Clock clock) {
-        super(killbillApi, configProperties, logService, clock);
+        super(killbillApi, configProperties, clock);
         this.dao = dao;
         this.calculator = new AvaTaxTaxCalculator(avaTaxConfigurationHandler, dao, clock, killbillApi);
     }

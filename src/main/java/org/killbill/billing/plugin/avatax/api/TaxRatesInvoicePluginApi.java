@@ -1,7 +1,7 @@
 /*
- * Copyright 2015-2020 Groupon, Inc
+ * Copyright 2014-2020 Groupon, Inc
  * Copyright 2020-2020 Equinix, Inc
- * Copyright 2015-2020 The Billing Project, LLC
+ * Copyright 2014-2020 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -26,7 +26,6 @@ import org.killbill.billing.invoice.api.InvoiceApiException;
 import org.killbill.billing.invoice.api.InvoiceItem;
 import org.killbill.billing.osgi.libs.killbill.OSGIConfigPropertiesService;
 import org.killbill.billing.osgi.libs.killbill.OSGIKillbillAPI;
-import org.killbill.billing.osgi.libs.killbill.OSGIKillbillLogService;
 import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.api.invoice.PluginInvoicePluginApi;
 import org.killbill.billing.plugin.avatax.core.TaxRatesConfigurationHandler;
@@ -42,9 +41,8 @@ public class TaxRatesInvoicePluginApi extends PluginInvoicePluginApi {
                                     final AvaTaxDao dao,
                                     final OSGIKillbillAPI killbillApi,
                                     final OSGIConfigPropertiesService configProperties,
-                                    final OSGIKillbillLogService logService,
                                     final Clock clock) {
-        super(killbillApi, configProperties, logService, clock);
+        super(killbillApi, configProperties, clock);
         this.calculator = new TaxRatesTaxCalculator(taxRatesConfigurationHandler, dao, clock, killbillApi);
     }
 

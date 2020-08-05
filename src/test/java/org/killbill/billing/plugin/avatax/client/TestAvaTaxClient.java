@@ -1,6 +1,7 @@
 /*
- * Copyright 2014-2018 Groupon, Inc
- * Copyright 2014-2018 The Billing Project, LLC
+ * Copyright 2014-2020 Groupon, Inc
+ * Copyright 2020-2020 Equinix, Inc
+ * Copyright 2014-2020 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -18,65 +19,62 @@
 package org.killbill.billing.plugin.avatax.client;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
 import java.util.UUID;
 
 import org.joda.time.DateTime;
 import org.killbill.billing.plugin.avatax.AvaTaxRemoteTestBase;
-import org.killbill.billing.plugin.avatax.client.model.Address;
-import org.killbill.billing.plugin.avatax.client.model.CommonResponse;
-import org.killbill.billing.plugin.avatax.client.model.DetailLevel;
+import org.killbill.billing.plugin.avatax.client.model.AddressLocationInfo;
+import org.killbill.billing.plugin.avatax.client.model.AddressesModel;
+import org.killbill.billing.plugin.avatax.client.model.CreateTransactionModel;
 import org.killbill.billing.plugin.avatax.client.model.DocType;
-import org.killbill.billing.plugin.avatax.client.model.GeoTaxResult;
-import org.killbill.billing.plugin.avatax.client.model.GetTaxRequest;
-import org.killbill.billing.plugin.avatax.client.model.GetTaxResult;
-import org.killbill.billing.plugin.avatax.client.model.Line;
+import org.killbill.billing.plugin.avatax.client.model.LineItemModel;
+import org.killbill.billing.plugin.avatax.client.model.TransactionModel;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+// To debug the request: -Dorg.slf4j.simpleLogger.log.org=DEBUG
 public class TestAvaTaxClient extends AvaTaxRemoteTestBase {
 
     @Test(groups = "integration")
-    public void testGetTax() throws Exception {
-        final GetTaxRequest getTaxRequest = new GetTaxRequest();
-        getTaxRequest.CustomerCode = UUID.randomUUID().toString();
-        getTaxRequest.DocDate = new DateTime("2014-05-01").toDate();
-        getTaxRequest.CompanyCode = companyCode;
-        getTaxRequest.Client = "KILL_BILL";
-        getTaxRequest.DocCode = UUID.randomUUID().toString();
-        getTaxRequest.DetailLevel = DetailLevel.Diagnostic;
-        getTaxRequest.CurrencyCode = "USD";
+    public void testCreateTransaction() throws Exception {
+        final CreateTransactionModel createTransactionModel = new CreateTransactionModel();
+        createTransactionModel.customerCode = UUID.randomUUID().toString();
+        createTransactionModel.date = new DateTime("2014-05-01").toDate();
+        createTransactionModel.companyCode = companyCode;
+        createTransactionModel.code = UUID.randomUUID().toString();
+        createTransactionModel.currencyCode = "USD";
+        createTransactionModel.debugLevel = "Diagnostic";
         // To see it in the UI
-        getTaxRequest.DocType = DocType.SalesInvoice;
-        getTaxRequest.Commit = true;
+        createTransactionModel.type = DocType.SalesInvoice;
+        createTransactionModel.commit = true;
 
-        final Address address = new Address();
-        address.AddressCode = "01";
-        address.Line1 = "45 Fremont Street";
-        address.City = "San Francisco";
-        address.Region = "CA";
-        getTaxRequest.Addresses = new Address[]{address};
+        final AddressLocationInfo addressLocationInfo = new AddressLocationInfo();
+        addressLocationInfo.line1 = "45 Fremont Street";
+        addressLocationInfo.city = "San Francisco";
+        addressLocationInfo.region = "CA";
+        createTransactionModel.addresses = new AddressesModel();
+        createTransactionModel.addresses.singleLocation = addressLocationInfo;
 
-        final Line line = new Line();
-        line.LineNo = UUID.randomUUID().toString();
-        line.ItemCode = UUID.randomUUID().toString();
-        line.Qty = new BigDecimal("1");
-        line.Amount = new BigDecimal("100");
-        line.OriginCode = address.AddressCode;
-        line.DestinationCode = address.AddressCode;
-        line.Description = UUID.randomUUID().toString();
-        getTaxRequest.Lines = new Line[]{line};
+        final LineItemModel lineItemModel = new LineItemModel();
+        lineItemModel.number = UUID.randomUUID().toString();
+        lineItemModel.itemCode = UUID.randomUUID().toString();
+        lineItemModel.quantity = new BigDecimal("1");
+        lineItemModel.amount = new BigDecimal("100");
+        lineItemModel.addresses = createTransactionModel.addresses;
+        lineItemModel.description = UUID.randomUUID().toString();
+        createTransactionModel.lines = new LineItemModel[]{lineItemModel};
 
-        final GetTaxResult result = client.getTax(getTaxRequest);
-        Assert.assertEquals(result.ResultCode, CommonResponse.SeverityLevel.Success, Arrays.toString(result.Messages));
-        // Extra info due to DetailLevel.Diagnostic
-        Assert.assertNotNull(result.Messages);
-    }
-
-    @Test(groups = "integration")
-    public void testEstimateTax() throws Exception {
-        final GeoTaxResult result = client.estimateTax(47.627935, -122.51702, 10.0);
-        Assert.assertEquals(result.ResultCode, CommonResponse.SeverityLevel.Success, Arrays.toString(result.Messages));
-        Assert.assertNull(result.Messages);
+        final TransactionModel result = client.createTransaction(createTransactionModel);
+        Assert.assertNotEquals(result.id, 0);
+        Assert.assertNotNull(result.code);
+        Assert.assertNotEquals(result.companyId, 0);
+        Assert.assertEquals(result.status, "Committed");
+        Assert.assertEquals(result.type, "SalesInvoice");
+        Assert.assertEquals(result.lines.length, 1);
+        Assert.assertTrue(result.lines[0].details.length >= 1);
+        Assert.assertEquals(result.addresses.length, 1);
+        Assert.assertTrue(result.summary.length >= 1);
+        // Diagnostic level
+        Assert.assertTrue(result.messages.length > 1);
     }
 }

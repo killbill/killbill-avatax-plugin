@@ -1,6 +1,7 @@
 /*
- * Copyright 2014-2018 Groupon, Inc
- * Copyright 2014-2018 The Billing Project, LLC
+ * Copyright 2014-2020 Groupon, Inc
+ * Copyright 2020-2020 Equinix, Inc
+ * Copyright 2014-2020 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -32,8 +33,8 @@ import org.killbill.billing.invoice.api.InvoiceItem;
 import org.killbill.billing.invoice.api.InvoiceItemType;
 import org.killbill.billing.plugin.TestUtils;
 import org.killbill.billing.plugin.avatax.AvaTaxRemoteTestBase;
-import org.killbill.billing.plugin.avatax.client.model.CommonResponse;
-import org.killbill.billing.plugin.avatax.client.model.GetTaxResult;
+import org.killbill.billing.plugin.avatax.client.model.AvaTaxErrors;
+import org.killbill.billing.plugin.avatax.client.model.TransactionModel;
 import org.killbill.billing.plugin.avatax.dao.gen.tables.records.AvataxResponsesRecord;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -74,17 +75,11 @@ public class TestAvaTaxDao extends AvaTaxRemoteTestBase {
         final InvoiceItem taxableItem2 = TestUtils.buildInvoiceItem(invoice, InvoiceItemType.RECURRING, BigDecimal.TEN, null);
         final InvoiceItem adjustmentItem21 = TestUtils.buildInvoiceItem(invoice, InvoiceItemType.REPAIR_ADJ, BigDecimal.ONE.negate(), taxableItem2.getId());
 
-        final GetTaxResult taxResultS1 = new GetTaxResult();
-        taxResultS1.DocCode = UUID.randomUUID().toString();
-        taxResultS1.ResultCode = CommonResponse.SeverityLevel.Success;
+        final TransactionModel taxResultS1 = new TransactionModel();
+        taxResultS1.code = UUID.randomUUID().toString();
 
-        final GetTaxResult taxResultS2 = new GetTaxResult();
-        taxResultS2.DocCode = UUID.randomUUID().toString();
-        taxResultS2.ResultCode = CommonResponse.SeverityLevel.Success;
-
-        final GetTaxResult taxResultE = new GetTaxResult();
-        taxResultE.DocCode = UUID.randomUUID().toString();
-        taxResultE.ResultCode = CommonResponse.SeverityLevel.Error;
+        final TransactionModel taxResultS2 = new TransactionModel();
+        taxResultS2.code = UUID.randomUUID().toString();
 
         // Success
         dao.addResponse(kbAccountId,
@@ -106,21 +101,21 @@ public class TestAvaTaxDao extends AvaTaxRemoteTestBase {
         dao.addResponse(kbAccountId,
                         kbInvoiceId,
                         ImmutableMap.<UUID, Iterable<InvoiceItem>>of(),
-                        taxResultE,
+                        new AvaTaxErrors(),
                         new DateTime(DateTimeZone.UTC),
                         kbTenantId);
         // Other invoice
         dao.addResponse(kbAccountId,
                         UUID.randomUUID(),
                         ImmutableMap.<UUID, Iterable<InvoiceItem>>of(),
-                        new GetTaxResult(),
+                        new TransactionModel(),
                         new DateTime(DateTimeZone.UTC),
                         kbTenantId);
 
         final List<AvataxResponsesRecord> responses = dao.getSuccessfulResponses(kbInvoiceId, kbTenantId);
         Assert.assertEquals(responses.size(), 2);
-        Assert.assertEquals(responses.get(0).getDocCode(), taxResultS1.DocCode);
-        Assert.assertEquals(responses.get(1).getDocCode(), taxResultS2.DocCode);
+        Assert.assertEquals(responses.get(0).getDocCode(), taxResultS1.code);
+        Assert.assertEquals(responses.get(1).getDocCode(), taxResultS2.code);
 
         final Map<UUID, Set<UUID>> kbInvoiceItems = dao.getTaxedItemsWithAdjustments(responses);
         Assert.assertEquals(kbInvoiceItems.size(), 2);

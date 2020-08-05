@@ -1,6 +1,7 @@
 /*
- * Copyright 2015 Groupon, Inc
- * Copyright 2015 The Billing Project, LLC
+ * Copyright 2014-2020 Groupon, Inc
+ * Copyright 2020-2020 Equinix, Inc
+ * Copyright 2014-2020 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -25,6 +26,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
@@ -37,8 +39,9 @@ import org.jooq.DSLContext;
 import org.jooq.TransactionalRunnable;
 import org.jooq.impl.DSL;
 import org.killbill.billing.invoice.api.InvoiceItem;
+import org.killbill.billing.plugin.avatax.client.model.AvaTaxErrors;
 import org.killbill.billing.plugin.avatax.client.model.CommonResponse;
-import org.killbill.billing.plugin.avatax.client.model.GetTaxResult;
+import org.killbill.billing.plugin.avatax.client.model.TransactionModel;
 import org.killbill.billing.plugin.avatax.client.model.TaxRateResult;
 import org.killbill.billing.plugin.avatax.dao.gen.tables.records.AvataxResponsesRecord;
 import org.killbill.billing.plugin.avatax.dao.gen.tables.records.AvataxTaxCodesRecord;
@@ -59,6 +62,7 @@ public class AvaTaxDao extends PluginDao {
     private static final Logger logger = LoggerFactory.getLogger(AvaTaxDao.class);
 
     private static final String SUCCESS = CommonResponse.SeverityLevel.Success.name();
+    private static final String ERROR = CommonResponse.SeverityLevel.Error.name();
 
     public AvaTaxDao(final DataSource dataSource) throws SQLException {
         super(dataSource);
@@ -169,10 +173,11 @@ public class AvaTaxDao extends PluginDao {
                 });
     }
 
+    // Success
     public void addResponse(final UUID kbAccountId,
                             final UUID kbInvoiceId,
                             final Map<UUID, Iterable<InvoiceItem>> kbInvoiceItems,
-                            final GetTaxResult taxResult,
+                            final TransactionModel taxResult,
                             final DateTime utcNow,
                             final UUID kbTenantId) throws SQLException {
         execute(dataSource.getConnection(),
@@ -205,22 +210,55 @@ public class AvaTaxDao extends PluginDao {
                            .values(kbAccountId.toString(),
                                    kbInvoiceId.toString(),
                                    kbInvoiceItemsIdsAsString(kbInvoiceItems),
-                                   taxResult.DocCode,
-                                   toTimestamp(taxResult.DocDate),
-                                   toTimestamp(taxResult.Timestamp),
-                                   BigDecimal.valueOf(taxResult.TotalAmount),
-                                   BigDecimal.valueOf(taxResult.TotalDiscount),
-                                   BigDecimal.valueOf(taxResult.TotalExemption),
-                                   BigDecimal.valueOf(taxResult.TotalTaxable),
-                                   BigDecimal.valueOf(taxResult.TotalTax),
-                                   BigDecimal.valueOf(taxResult.TotalTaxCalculated),
-                                   toTimestamp(taxResult.TaxDate),
-                                   asString(taxResult.TaxLines),
-                                   asString(taxResult.TaxSummary),
-                                   asString(taxResult.TaxAddresses),
-                                   taxResult.ResultCode == null ? null : taxResult.ResultCode.name(),
-                                   asString(taxResult.Messages),
+                                   taxResult.code,
+                                   toTimestamp(taxResult.date),
                                    null,
+                                   BigDecimal.valueOf(taxResult.totalAmount),
+                                   BigDecimal.valueOf(taxResult.totalDiscount),
+                                   BigDecimal.valueOf(taxResult.totalExempt),
+                                   BigDecimal.valueOf(taxResult.totalTaxable),
+                                   BigDecimal.valueOf(taxResult.totalTax),
+                                   BigDecimal.valueOf(taxResult.totalTaxCalculated),
+                                   toTimestamp(taxResult.taxDate),
+                                   asString(taxResult.lines),
+                                   asString(taxResult.summary),
+                                   asString(taxResult.addresses),
+                                   SUCCESS,
+                                   asString(taxResult.messages),
+                                   null,
+                                   toTimestamp(utcNow),
+                                   kbTenantId.toString())
+                           .execute();
+                        return null;
+                    }
+                });
+    }
+
+    // !Success
+    public void addResponse(final UUID kbAccountId,
+                            final UUID kbInvoiceId,
+                            final Map<UUID, Iterable<InvoiceItem>> kbInvoiceItems,
+                            final AvaTaxErrors errors,
+                            final DateTime utcNow,
+                            final UUID kbTenantId) throws SQLException {
+        execute(dataSource.getConnection(),
+                new WithConnectionCallback<Void>() {
+                    @Override
+                    public Void withConnection(final Connection conn) throws SQLException {
+                        DSL.using(conn, dialect, settings)
+                           .insertInto(AVATAX_RESPONSES,
+                                       AVATAX_RESPONSES.KB_ACCOUNT_ID,
+                                       AVATAX_RESPONSES.KB_INVOICE_ID,
+                                       AVATAX_RESPONSES.KB_INVOICE_ITEM_IDS,
+                                       AVATAX_RESPONSES.RESULT_CODE,
+                                       AVATAX_RESPONSES.ADDITIONAL_DATA,
+                                       AVATAX_RESPONSES.CREATED_DATE,
+                                       AVATAX_RESPONSES.KB_TENANT_ID)
+                           .values(kbAccountId.toString(),
+                                   kbInvoiceId.toString(),
+                                   kbInvoiceItemsIdsAsString(kbInvoiceItems),
+                                   ERROR,
+                                   asString(errors),
                                    toTimestamp(utcNow),
                                    kbTenantId.toString())
                            .execute();
@@ -269,11 +307,11 @@ public class AvaTaxDao extends PluginDao {
     private void kbInvoiceItemsIdsFromString(@Nullable final String kbInvoiceItemsIdsAsString, final Map<UUID, Set<UUID>> kbInvoiceItemsIds) throws IOException {
         if (Strings.emptyToNull(kbInvoiceItemsIdsAsString) != null) {
             final Map<UUID, Set<UUID>> kbInvoiceItemsIdsAsMap = objectMapper.readValue(kbInvoiceItemsIdsAsString, new TypeReference<Map<UUID, Set<UUID>>>() {});
-            for (final UUID kbInvoiceItemId : kbInvoiceItemsIdsAsMap.keySet()) {
-                if (kbInvoiceItemsIds.get(kbInvoiceItemId) == null) {
-                    kbInvoiceItemsIds.put(kbInvoiceItemId, new HashSet<UUID>());
+            for (final Entry<UUID, Set<UUID>> entry : kbInvoiceItemsIdsAsMap.entrySet()) {
+                if (kbInvoiceItemsIds.get(entry.getKey()) == null) {
+                    kbInvoiceItemsIds.put(entry.getKey(), new HashSet<UUID>());
                 }
-                kbInvoiceItemsIds.get(kbInvoiceItemId).addAll(kbInvoiceItemsIdsAsMap.get(kbInvoiceItemId));
+                kbInvoiceItemsIds.get(entry.getKey()).addAll(entry.getValue());
             }
         }
     }
@@ -284,6 +322,9 @@ public class AvaTaxDao extends PluginDao {
                                                                                                                         @Override
                                                                                                                         public Set<UUID> apply(final Iterable<InvoiceItem> invoiceItems) {
                                                                                                                             final Set<UUID> invoiceItemIds = new HashSet<UUID>();
+                                                                                                                            if (invoiceItems == null) {
+                                                                                                                                return invoiceItemIds;
+                                                                                                                            }
                                                                                                                             for (final InvoiceItem invoiceItem : invoiceItems) {
                                                                                                                                 invoiceItemIds.add(invoiceItem.getId());
                                                                                                                             }

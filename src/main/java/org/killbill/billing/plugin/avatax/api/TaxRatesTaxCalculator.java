@@ -1,6 +1,7 @@
 /*
- * Copyright 2015 Groupon, Inc
- * Copyright 2015 The Billing Project, LLC
+ * Copyright 2014-2020 Groupon, Inc
+ * Copyright 2020-2020 Equinix, Inc
+ * Copyright 2014-2020 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -31,13 +32,15 @@ import org.joda.time.LocalDate;
 import org.killbill.billing.account.api.Account;
 import org.killbill.billing.invoice.api.Invoice;
 import org.killbill.billing.invoice.api.InvoiceItem;
+import org.killbill.billing.osgi.libs.killbill.OSGIKillbillAPI;
 import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.api.PluginProperties;
 import org.killbill.billing.plugin.avatax.client.AvaTaxClientException;
-import org.killbill.billing.plugin.avatax.client.model.JurisTaxRate;
+import org.killbill.billing.plugin.avatax.client.model.RateModel;
 import org.killbill.billing.plugin.avatax.client.model.TaxRateResult;
 import org.killbill.billing.plugin.avatax.core.TaxRatesConfigurationHandler;
 import org.killbill.billing.plugin.avatax.dao.AvaTaxDao;
+import org.killbill.billing.plugin.util.KillBillMoney;
 import org.killbill.clock.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,8 +58,11 @@ public class TaxRatesTaxCalculator extends AvaTaxTaxCalculatorBase {
 
     private final TaxRatesConfigurationHandler taxRatesConfigurationHandler;
 
-    public TaxRatesTaxCalculator(final TaxRatesConfigurationHandler taxRatesConfigurationHandler, final AvaTaxDao dao, final Clock clock) {
-        super(dao, clock);
+    public TaxRatesTaxCalculator(final TaxRatesConfigurationHandler taxRatesConfigurationHandler,
+                                 final AvaTaxDao dao,
+                                 final Clock clock,
+                                 final OSGIKillbillAPI osgiKillbillAPI) {
+        super(dao, clock, osgiKillbillAPI);
         this.taxRatesConfigurationHandler = taxRatesConfigurationHandler;
     }
 
@@ -65,27 +71,38 @@ public class TaxRatesTaxCalculator extends AvaTaxTaxCalculatorBase {
                                                         final Invoice newInvoice,
                                                         final Invoice invoice,
                                                         final Map<UUID, InvoiceItem> taxableItems,
-                                                        @Nullable final Map<UUID, Collection<InvoiceItem>> adjustmentItems,
+                                                        @Nullable final Map<UUID, List<InvoiceItem>> adjustmentItems,
                                                         @Nullable final String originalInvoiceReferenceCode,
                                                         final boolean dryRun,
                                                         final Iterable<PluginProperty> pluginProperties,
                                                         final UUID kbTenantId,
                                                         final Map<UUID, Iterable<InvoiceItem>> kbInvoiceItems,
-                                                        final LocalDate utcToday) throws AvaTaxClientException, SQLException {
-        // Expected tax rates
+                                                        final LocalDate utcToday) throws SQLException {
         final TaxRateResult taxRates = getTaxRates(account, kbTenantId);
         if (taxRates == null) {
             return ImmutableList.<InvoiceItem>of();
         }
         logger.info("TaxRateResult for account {}: {}", account.getId(), taxRates.simplifiedToString());
-
-        dao.addResponse(account.getId(), invoice.getId(), kbInvoiceItems, taxRates, clock.getUTCNow(), kbTenantId);
+        if (!dryRun) {
+            dao.addResponse(account.getId(), newInvoice.getId(), kbInvoiceItems, taxRates, clock.getUTCNow(), kbTenantId);
+        }
 
         final Collection<InvoiceItem> newTaxItems = new LinkedList<InvoiceItem>();
         for (final InvoiceItem taxableItem : taxableItems.values()) {
-            final Collection<InvoiceItem> adjustmentsForTaxableItem = adjustmentItems == null ? null : adjustmentItems.get(taxableItem.getId());
-            final BigDecimal netItemAmount = netAmount(taxableItem, adjustmentsForTaxableItem);
-            newTaxItems.addAll(buildInvoiceItems(newInvoice, taxableItem, pluginProperties, netItemAmount, utcToday, taxRates));
+            if (adjustmentItems != null) {
+                final InvoiceItem adjustmentItem;
+                if (adjustmentItems.get(taxableItem.getId()) != null && adjustmentItems.get(taxableItem.getId()).size() == 1) {
+                    // Could be a repair or an item adjustment: in either case, we use it to compute the service period
+                    adjustmentItem = adjustmentItems.get(taxableItem.getId()).get(0);
+                } else {
+                    // Multiple adjustments: use the original service period
+                    adjustmentItem = null;
+                }
+                final BigDecimal adjustmentAmount = sum(adjustmentItems.get(taxableItem.getId()));
+                newTaxItems.addAll(buildInvoiceItems(newInvoice, taxableItem, adjustmentItem, pluginProperties, adjustmentAmount, taxRates));
+            } else {
+                newTaxItems.addAll(buildInvoiceItems(newInvoice, taxableItem, null, pluginProperties, taxableItem.getAmount(), taxRates));
+            }
         }
 
         return newTaxItems;
@@ -93,36 +110,42 @@ public class TaxRatesTaxCalculator extends AvaTaxTaxCalculatorBase {
 
     private Collection<InvoiceItem> buildInvoiceItems(final Invoice newInvoice,
                                                       final InvoiceItem taxableItem,
+                                                      @Nullable final InvoiceItem repairItem,
                                                       final Iterable<PluginProperty> pluginProperties,
                                                       final BigDecimal netItemAmount,
-                                                      final LocalDate utcToday,
                                                       final TaxRateResult taxRates) {
         final List<String> rateTypes = ImmutableList.<String>copyOf(Iterables.transform(PluginProperties.findPluginProperties(RATE_TYPE, pluginProperties),
                                                                                         new Function<PluginProperty, String>() {
                                                                                             @Override
                                                                                             public String apply(final PluginProperty pluginProperty) {
-                                                                                                return pluginProperty.getValue().toString();
+                                                                                                return pluginProperty == null ? "" : pluginProperty.getValue().toString();
                                                                                             }
                                                                                         }));
 
         final Collection<InvoiceItem> newTaxItems = new LinkedList<InvoiceItem>();
         if (taxRates.rates == null || taxRates.rates.isEmpty()) {
+            final BigDecimal rawAmount = BigDecimal.valueOf(taxRates.totalRate).multiply(netItemAmount);
+            // Use KillBillMoney to ensure we use the same rounding everywhere
+            final BigDecimal amount = KillBillMoney.of(rawAmount, taxableItem.getCurrency());
             final InvoiceItem taxItem = buildTaxItem(taxableItem,
                                                      newInvoice.getId(),
-                                                     utcToday,
-                                                     BigDecimal.valueOf(taxRates.totalRate).multiply(netItemAmount),
+                                                     repairItem,
+                                                     amount,
                                                      "Tax");
             if (taxItem != null) {
                 newTaxItems.add(taxItem);
             }
         } else {
-            for (final JurisTaxRate jurisTaxRate : taxRates.rates) {
-                if (rateTypes.isEmpty() || rateTypes.contains(jurisTaxRate.type)) {
+            for (final RateModel rateModel : taxRates.rates) {
+                if (rateTypes.isEmpty() || rateTypes.contains(rateModel.type)) {
+                    final BigDecimal rawAmount = BigDecimal.valueOf(rateModel.rate).multiply(netItemAmount);
+                    // Use KillBillMoney to ensure we use the same rounding everywhere
+                    final BigDecimal amount = KillBillMoney.of(rawAmount, taxableItem.getCurrency());
                     final InvoiceItem taxItem = buildTaxItem(taxableItem,
                                                              newInvoice.getId(),
-                                                             utcToday,
-                                                             BigDecimal.valueOf(jurisTaxRate.rate).multiply(netItemAmount),
-                                                             MoreObjects.firstNonNull(jurisTaxRate.name, "Tax"));
+                                                             repairItem,
+                                                             amount,
+                                                             MoreObjects.firstNonNull(rateModel.name, "Tax"));
                     if (taxItem != null) {
                         newTaxItems.add(taxItem);
                     }

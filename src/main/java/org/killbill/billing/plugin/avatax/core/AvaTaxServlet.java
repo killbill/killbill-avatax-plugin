@@ -1,6 +1,7 @@
 /*
- * Copyright 2015 Groupon, Inc
- * Copyright 2015 The Billing Project, LLC
+ * Copyright 2014-2020 Groupon, Inc
+ * Copyright 2020-2020 Equinix, Inc
+ * Copyright 2014-2020 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -17,160 +18,84 @@
 
 package org.killbill.billing.plugin.avatax.core;
 
-import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import javax.inject.Named;
+import javax.inject.Singleton;
 
+import org.jooby.MediaType;
+import org.jooby.Result;
+import org.jooby.Results;
+import org.jooby.Status;
+import org.jooby.mvc.Body;
+import org.jooby.mvc.DELETE;
+import org.jooby.mvc.GET;
+import org.jooby.mvc.Local;
+import org.jooby.mvc.POST;
+import org.jooby.mvc.Path;
+import org.killbill.billing.osgi.libs.killbill.OSGIKillbillClock;
 import org.killbill.billing.plugin.avatax.dao.AvaTaxDao;
 import org.killbill.billing.plugin.avatax.dao.gen.tables.records.AvataxTaxCodesRecord;
-import org.killbill.billing.plugin.core.PluginServlet;
 import org.killbill.billing.tenant.api.Tenant;
-import org.killbill.clock.Clock;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import com.google.inject.Inject;
 
-public class AvaTaxServlet extends PluginServlet {
-
-    private static final ObjectMapper jsonMapper = new ObjectMapper();
-
-    private static final Pattern TAX_CODES_PATTERN = Pattern.compile("/taxCodes(/([\\w-]+))?");
+@Singleton
+// Handle /plugins/killbill-avatax/taxCodes
+// Used by Kaui: https://github.com/killbill/killbill-avatax-ui/blob/master/lib/avatax/client.rb
+@Path("/taxCodes")
+public class AvaTaxServlet {
 
     private final AvaTaxDao dao;
-    private final Clock clock;
+    private final OSGIKillbillClock clock;
 
-    public AvaTaxServlet(final AvaTaxDao dao, final Clock clock) {
+    @Inject
+    public AvaTaxServlet(final AvaTaxDao dao, final OSGIKillbillClock clock) {
         this.dao = dao;
         this.clock = clock;
     }
 
-    @Override
-    protected void doGet(final HttpServletRequest req, final HttpServletResponse resp) throws ServletException, IOException {
-        final Tenant tenant = getTenant(req);
-        if (tenant == null) {
-            buildNotFoundResponse("No tenant specified", resp);
-            return;
-        }
+    @GET
+    public Result getTaxCodes(@Local @Named("killbill_tenant") final Tenant tenant) throws SQLException {
+        final List<AvataxTaxCodesRecord> taxCodesRecords = dao.getTaxCodes(tenant.getId());
 
-        final String pathInfo = req.getPathInfo();
-        final Matcher matcher = TAX_CODES_PATTERN.matcher(pathInfo);
-        if (matcher.matches()) {
-            final String productName = matcher.group(2);
-            if (productName == null) {
-                getTaxCodes(tenant, resp);
-            } else {
-                getTaxCode(productName, tenant, resp);
-            }
-        } else {
-            buildNotFoundResponse("Resource " + pathInfo + " not found", resp);
-        }
+        final List<TaxCodeJson> taxCodes = Lists.<AvataxTaxCodesRecord, TaxCodeJson>transform(taxCodesRecords,
+                                                                                              new Function<AvataxTaxCodesRecord, TaxCodeJson>() {
+                                                                                                  @Override
+                                                                                                  public TaxCodeJson apply(final AvataxTaxCodesRecord record) {
+                                                                                                      return record == null ? null : new TaxCodeJson(record.getProductName(), record.getTaxCode());
+                                                                                                  }
+                                                                                              });
+        return Results.ok(taxCodes).type(MediaType.json);
     }
 
-    @Override
-    protected void doPost(final HttpServletRequest req, final HttpServletResponse resp) throws ServletException, IOException {
-        final Tenant tenant = getTenant(req);
-        if (tenant == null) {
-            buildNotFoundResponse("No tenant specified", resp);
-            return;
-        }
-
-        final String pathInfo = req.getPathInfo();
-        final Matcher matcher = TAX_CODES_PATTERN.matcher(pathInfo);
-        if (matcher.matches()) {
-            addTaxCode(tenant, req, resp);
-        } else {
-            buildNotFoundResponse("Resource " + pathInfo + " not found", resp);
-        }
-    }
-
-    @Override
-    protected void doDelete(final HttpServletRequest req, final HttpServletResponse resp) throws ServletException, IOException {
-        final Tenant tenant = getTenant(req);
-        if (tenant == null) {
-            buildNotFoundResponse("No tenant specified", resp);
-            return;
-        }
-
-        final String pathInfo = req.getPathInfo();
-        final Matcher matcher = TAX_CODES_PATTERN.matcher(pathInfo);
-        if (matcher.matches()) {
-            final String productName = matcher.group(2);
-            if (productName != null) {
-                deleteTaxCode(productName, tenant, resp);
-            } else {
-                buildNotFoundResponse("Resource " + pathInfo + " not found", resp);
-            }
-        } else {
-            buildNotFoundResponse("Resource " + pathInfo + " not found", resp);
-        }
-    }
-
-    private void getTaxCodes(final Tenant tenant, final HttpServletResponse resp) throws IOException {
-        final List<AvataxTaxCodesRecord> taxCodesRecords;
-        try {
-            taxCodesRecords = dao.getTaxCodes(tenant.getId());
-        } catch (final SQLException e) {
-            buildErrorResponse(e, resp);
-            return;
-        }
-
-        final byte[] data = jsonMapper.writeValueAsBytes(Lists.<AvataxTaxCodesRecord, TaxCodeJson>transform(taxCodesRecords,
-                                                                                                            new Function<AvataxTaxCodesRecord, TaxCodeJson>() {
-                                                                                                                @Override
-                                                                                                                public TaxCodeJson apply(final AvataxTaxCodesRecord record) {
-                                                                                                                    return new TaxCodeJson(record.getProductName(), record.getTaxCode());
-                                                                                                                }
-                                                                                                            }));
-
-        buildOKResponse(data, resp);
-    }
-
-    private void getTaxCode(final String productName, final Tenant tenant, final HttpServletResponse resp) throws IOException {
-        final String taxCode;
-        try {
-            taxCode = dao.getTaxCode(productName, tenant.getId());
-        } catch (final SQLException e) {
-            buildErrorResponse(e, resp);
-            return;
-        }
-
+    @GET
+    @Path("/{productName}")
+    public Result getTaxCode(@Named("productName") final String productName,
+                             @Local @Named("killbill_tenant") final Tenant tenant) throws SQLException {
+        final String taxCode = dao.getTaxCode(productName, tenant.getId());
         final TaxCodeJson taxCodeJson = new TaxCodeJson(productName, taxCode);
-        final byte[] data = jsonMapper.writeValueAsBytes(taxCodeJson);
-
-        buildOKResponse(data, resp);
+        return Results.ok(taxCodeJson).type(MediaType.json);
     }
 
-    private void addTaxCode(final Tenant tenant, final ServletRequest req, final HttpServletResponse resp) throws IOException {
-        final TaxCodeJson taxCodeJson = jsonMapper.readValue(getRequestData(req), TaxCodeJson.class);
-        try {
-            dao.setTaxCode(taxCodeJson.productName, taxCodeJson.taxCode, clock.getUTCNow(), tenant.getId());
-        } catch (final SQLException e) {
-            buildErrorResponse(e, resp);
-            return;
-        }
-
-        buildCreatedResponse("/plugins/killbill-avatax/taxCodes/" + taxCodeJson.productName, resp);
+    @POST
+    public Result createTaxCode(@Body final TaxCodeJson taxCodeJson,
+                                @Local @Named("killbill_tenant") final Tenant tenant) throws SQLException {
+        dao.setTaxCode(taxCodeJson.productName, taxCodeJson.taxCode, clock.getClock().getUTCNow(), tenant.getId());
+        return Results.with(Status.CREATED).header("location", "/plugins/killbill-avatax/taxCodes/" + taxCodeJson.productName);
     }
 
-    private void deleteTaxCode(final String productName, final Tenant tenant, final HttpServletResponse resp) throws IOException {
-        try {
-            dao.setTaxCode(productName, null, clock.getUTCNow(), tenant.getId());
-        } catch (final SQLException e) {
-            buildErrorResponse(e, resp);
-            return;
-        }
-
-        buildOKResponse(new byte[]{}, resp);
+    @DELETE
+    @Path("/{productName}")
+    public Result deleteTaxCode(@Named("productName") final String productName,
+                                @Local @Named("killbill_tenant") final Tenant tenant) throws SQLException {
+        dao.setTaxCode(productName, null, clock.getClock().getUTCNow(), tenant.getId());
+        return Results.ok();
     }
 
     private static final class TaxCodeJson {
@@ -182,6 +107,38 @@ public class AvaTaxServlet extends PluginServlet {
         public TaxCodeJson(@JsonProperty("productName") final String productName, @JsonProperty("taxCode") final String taxCode) {
             this.productName = productName;
             this.taxCode = taxCode;
+        }
+
+        @Override
+        public String toString() {
+            return "TaxCodeJson{" +
+                   "productName='" + productName + '\'' +
+                   ", taxCode='" + taxCode + '\'' +
+                   '}';
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+
+            final TaxCodeJson that = (TaxCodeJson) o;
+
+            if (productName != null ? !productName.equals(that.productName) : that.productName != null) {
+                return false;
+            }
+            return taxCode != null ? taxCode.equals(that.taxCode) : that.taxCode == null;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = productName != null ? productName.hashCode() : 0;
+            result = 31 * result + (taxCode != null ? taxCode.hashCode() : 0);
+            return result;
         }
     }
 }

@@ -1,6 +1,7 @@
 /*
- * Copyright 2015 Groupon, Inc
- * Copyright 2015 The Billing Project, LLC
+ * Copyright 2014-2020 Groupon, Inc
+ * Copyright 2020-2020 Equinix, Inc
+ * Copyright 2014-2020 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -17,10 +18,16 @@
 
 package org.killbill.billing.plugin.avatax.client;
 
+import java.text.SimpleDateFormat;
 import java.util.Properties;
 
 import org.killbill.billing.plugin.avatax.core.AvaTaxActivator;
 
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.core.JsonParser.Feature;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.base.Strings;
 
 public abstract class ClientUtils {
@@ -32,6 +39,16 @@ public abstract class ClientUtils {
 
     public static Boolean getBooleanProperty(final Properties properties, final String key) {
         final String property = properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + key);
-        return Strings.isNullOrEmpty(property) ? true : Boolean.valueOf(property);
+        return Strings.isNullOrEmpty(property) || Boolean.parseBoolean(property);
+    }
+
+    public static ObjectMapper createObjectMapper() {
+        final ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.setSerializationInclusion(Include.NON_NULL);
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        objectMapper.configure(Feature.ALLOW_UNQUOTED_CONTROL_CHARS, true);
+        objectMapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+        objectMapper.setDateFormat(new SimpleDateFormat("yyyy-MM-dd"));
+        return objectMapper;
     }
 }

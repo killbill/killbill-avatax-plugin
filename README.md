@@ -30,7 +30,7 @@ To install the plugin from sources:
 
 ```
 mvn clean install -DskipTests=true
-kpm install_java_plugin avatax --from-source-file=target/avatax-plugin-0.8.0-SNAPSHOT.jar --destination=/var/tmp/bundles
+kpm install_java_plugin avatax --from-source-file target/avatax-plugin-*-SNAPSHOT.jar --destination /var/tmp/bundles
 ```
 
 You must then enable globally the plugin in Kill Bill (`killbill.properties` file):
@@ -118,8 +118,6 @@ See also the [AvaTax Rails mountable engine](https://github.com/killbill/killbil
 Set the `customerUsageType` custom field on the account object (e.g. `E` for charitable or benevolent organizations).
 
 See [Handling tax exempt customers](https://help.avalara.com/Avalara_AvaTax_Update/Options_for_exempting_customers) for more details.
-
-The plugin doesn't yet integrate with [Avalara CertCapture](https://www.avalara.com/us/en/products/exemption-certificates.html) to manage exemption certificates, but feel free to [get in touch](https://groups.google.com/forum/#!forum/killbilling-users) to see this feature added.
 
 ### Setting tax codes
 

@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -95,7 +96,7 @@ public class AvaTaxDao extends PluginDao {
                                                              AVATAX_TAX_CODES.KB_TENANT_ID)
                                                  .values(productName,
                                                          taxCode,
-                                                         toTimestamp(utcNow),
+                                                         toLocalDateTime(utcNow),
                                                          kbTenantId.toString())
                                                  .execute();
                                    }
@@ -165,7 +166,7 @@ public class AvaTaxDao extends PluginDao {
                                    kbInvoiceItemsIdsAsString(kbInvoiceItems),
                                    BigDecimal.valueOf(taxRateResult.totalRate),
                                    SUCCESS,
-                                   toTimestamp(utcNow),
+                                   toLocalDateTime(utcNow),
                                    kbTenantId.toString())
                            .execute();
                         return null;
@@ -211,7 +212,7 @@ public class AvaTaxDao extends PluginDao {
                                    kbInvoiceId.toString(),
                                    kbInvoiceItemsIdsAsString(kbInvoiceItems),
                                    taxResult.code,
-                                   toTimestamp(taxResult.date),
+                                   taxResult.date == null ? null : taxResult.date.toInstant().atZone(ZoneOffset.UTC).toLocalDateTime(),
                                    null,
                                    BigDecimal.valueOf(taxResult.totalAmount),
                                    BigDecimal.valueOf(taxResult.totalDiscount),
@@ -219,14 +220,14 @@ public class AvaTaxDao extends PluginDao {
                                    BigDecimal.valueOf(taxResult.totalTaxable),
                                    BigDecimal.valueOf(taxResult.totalTax),
                                    BigDecimal.valueOf(taxResult.totalTaxCalculated),
-                                   toTimestamp(taxResult.taxDate),
+                                   taxResult.taxDate == null ? null : taxResult.taxDate.toInstant().atZone(ZoneOffset.UTC).toLocalDateTime(),
                                    asString(taxResult.lines),
                                    asString(taxResult.summary),
                                    asString(taxResult.addresses),
                                    SUCCESS,
                                    asString(taxResult.messages),
                                    null,
-                                   toTimestamp(utcNow),
+                                   toLocalDateTime(utcNow),
                                    kbTenantId.toString())
                            .execute();
                         return null;
@@ -259,7 +260,7 @@ public class AvaTaxDao extends PluginDao {
                                    kbInvoiceItemsIdsAsString(kbInvoiceItems),
                                    ERROR,
                                    asString(errors),
-                                   toTimestamp(utcNow),
+                                   toLocalDateTime(utcNow),
                                    kbTenantId.toString())
                            .execute();
                         return null;

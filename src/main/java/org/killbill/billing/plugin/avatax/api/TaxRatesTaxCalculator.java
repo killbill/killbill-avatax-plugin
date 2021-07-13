@@ -1,7 +1,7 @@
 /*
  * Copyright 2014-2020 Groupon, Inc
- * Copyright 2020-2020 Equinix, Inc
- * Copyright 2014-2020 The Billing Project, LLC
+ * Copyright 2020-2021 Equinix, Inc
+ * Copyright 2014-2021 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -77,7 +77,7 @@ public class TaxRatesTaxCalculator extends AvaTaxTaxCalculatorBase {
                                                         final Iterable<PluginProperty> pluginProperties,
                                                         final UUID kbTenantId,
                                                         final Map<UUID, Iterable<InvoiceItem>> kbInvoiceItems,
-                                                        final LocalDate utcToday) throws SQLException {
+                                                        final LocalDate utcToday) throws AvaTaxClientException, SQLException {
         final TaxRateResult taxRates = getTaxRates(account, kbTenantId);
         if (taxRates == null) {
             return ImmutableList.<InvoiceItem>of();
@@ -155,22 +155,17 @@ public class TaxRatesTaxCalculator extends AvaTaxTaxCalculatorBase {
         return newTaxItems;
     }
 
-    private TaxRateResult getTaxRates(final Account account, final UUID kbTenantId) {
-        try {
-            if (account.getAddress1() != null &&
-                account.getCity() != null &&
-                account.getStateOrProvince() != null &&
-                account.getPostalCode() != null &&
-                account.getCountry() != null) {
-                return taxRatesConfigurationHandler.getConfigurable(kbTenantId).fromAddress(account.getAddress1(), account.getCity(), account.getStateOrProvince(), account.getPostalCode(), account.getCountry());
-            } else if (account.getPostalCode() != null && account.getCountry() != null) {
-                return taxRatesConfigurationHandler.getConfigurable(kbTenantId).fromPostal(account.getPostalCode(), account.getCountry());
-            } else {
-                logger.warn("Not enough information to retrieve tax rates for account {}", account.getId());
-                return null;
-            }
-        } catch (final AvaTaxClientException e) {
-            logger.warn("Unable to retrieve tax rates", e);
+    private TaxRateResult getTaxRates(final Account account, final UUID kbTenantId) throws AvaTaxClientException {
+        if (account.getAddress1() != null &&
+            account.getCity() != null &&
+            account.getStateOrProvince() != null &&
+            account.getPostalCode() != null &&
+            account.getCountry() != null) {
+            return taxRatesConfigurationHandler.getConfigurable(kbTenantId).fromAddress(account.getAddress1(), account.getCity(), account.getStateOrProvince(), account.getPostalCode(), account.getCountry());
+        } else if (account.getPostalCode() != null && account.getCountry() != null) {
+            return taxRatesConfigurationHandler.getConfigurable(kbTenantId).fromPostal(account.getPostalCode(), account.getCountry());
+        } else {
+            logger.warn("Not enough information to retrieve tax rates for account {}", account.getId());
             return null;
         }
     }

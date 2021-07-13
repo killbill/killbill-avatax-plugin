@@ -1,5 +1,7 @@
 0.8.3
+    Don't commit documents associated with DRAFT invoices
     Make HTTP client request timeout configurable
+    Propagate exceptions to fail the invoice generation process
     Update killbill-oss-parent to 0.144.52
 
 0.8.2

@@ -38,7 +38,7 @@ public class TestTaxRatesClient extends AvaTaxRemoteTestBase {
     }
 
     private void checkSFRates(final TaxRateResult result) {
-        Assert.assertEquals(result.totalRate, 0.085);
+        Assert.assertEquals(result.totalRate, 0.08625);
         Assert.assertEquals(result.rates.size(), 4);
 
         Assert.assertEquals(result.rates.get(0).rate, 0.0025);
@@ -49,7 +49,7 @@ public class TestTaxRatesClient extends AvaTaxRemoteTestBase {
         Assert.assertEquals(result.rates.get(1).name, "CA STATE TAX");
         Assert.assertEquals(result.rates.get(1).type, "State");
 
-        Assert.assertEquals(result.rates.get(2).rate, 0.0125);
+        Assert.assertEquals(result.rates.get(2).rate, 0.01375);
         Assert.assertEquals(result.rates.get(2).name, "CA SPECIAL TAX");
         Assert.assertEquals(result.rates.get(2).type, "Special");
 

@@ -1,7 +1,7 @@
 /*
  * Copyright 2014-2020 Groupon, Inc
- * Copyright 2020-2020 Equinix, Inc
- * Copyright 2014-2020 The Billing Project, LLC
+ * Copyright 2020-2021 Equinix, Inc
+ * Copyright 2014-2021 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -68,11 +68,11 @@ public class TestAvaTaxInvoicePluginApi extends AvaTaxRemoteTestBase {
         pluginProperties = new LinkedList<PluginProperty>();
 
         // California Nexus must be enabled in your account for the test to pass
-        // As of June 2020, tax rates are (total 0.085):
+        // As of July 2021, tax rates are:
         //   CA STATE TAX: 0.06
         //   CA COUNTY TAX: 0.0025
         //   CA SPECIAL TAX (SAN FRANCISCO CO LOCAL TAX SL): 0.01
-        //   CA SPECIAL TAX (SAN FRANCISCO COUNTY DISTRICT TAX SP): 0.0125
+        //   CA SPECIAL TAX (SAN FRANCISCO COUNTY DISTRICT TAX SP): 0.01375
         account = TestUtils.buildAccount(Currency.USD, "45 Fremont Street", null, "San Francisco", "CA", "94105", "US");
 
         callContext = new PluginCallContext(AvaTaxActivator.PLUGIN_NAME, clock.getUTCNow(), account.getId(), UUID.randomUUID());
@@ -110,13 +110,13 @@ public class TestAvaTaxInvoicePluginApi extends AvaTaxRemoteTestBase {
         invoiceItems.add(taxableItem1);
         pluginProperties.add(new PluginProperty(String.format("%s_%s", AvaTaxTaxCalculator.TAX_CODE, taxableItem1.getId()), "D9999999", false));
         List<InvoiceItem> additionalInvoiceItems = avaTaxInvoicePluginApi.getAdditionalInvoiceItems(invoice, false, pluginProperties, callContext);
-        // 4 TAX items expected (total $8.5)
-        checkTaxes(additionalInvoiceItems, 4, new BigDecimal("8.5"));
+        // 4 TAX items expected (total $8.63)
+        checkTaxes(additionalInvoiceItems, 4, new BigDecimal("8.63"));
 
         /*
          * Scenario 1B: re-invoice of 1A (should be idempotent)
-         *     $100   Taxable item I1
-         *       $8.5 Tax items (x4)
+         *     $100    Taxable item I1
+         *       $8.63 Tax items (x4)
          */
         invoiceItems.addAll(additionalInvoiceItems);
         additionalInvoiceItems = avaTaxInvoicePluginApi.getAdditionalInvoiceItems(invoice, false, pluginProperties, callContext);
@@ -124,22 +124,22 @@ public class TestAvaTaxInvoicePluginApi extends AvaTaxRemoteTestBase {
 
         /*
          * Scenario 2A: item adjustment on existing invoice
-         *     $100   Taxable item I1
-         *       $8.5 Tax items (x4)
-         *     -$50   Item adjustment I2
+         *     $100    Taxable item I1
+         *       $8.63 Tax items (x4)
+         *     -$50    Item adjustment I2
          */
         final InvoiceItem itemAdjustment2 = TestUtils.buildInvoiceItem(invoice, InvoiceItemType.ITEM_ADJ, new BigDecimal("-50"), taxableItem1.getId());
         invoiceItems.add(itemAdjustment2);
         additionalInvoiceItems = avaTaxInvoicePluginApi.getAdditionalInvoiceItems(invoice, false, pluginProperties, callContext);
-        // 4 TAX items expected (total -$4.26)
-        checkTaxes(additionalInvoiceItems, 4, new BigDecimal("-4.26"));
+        // 4 TAX items expected (total -$4.32)
+        checkTaxes(additionalInvoiceItems, 4, new BigDecimal("-4.32"));
 
         /*
          * Scenario 2B: re-invoice of 2A (should be idempotent)
          *     $100    Taxable item I1
-         *       $8.5  Tax items (x4)
+         *       $8.63 Tax items (x4)
          *     -$50    Item adjustment I2
-         *      -$4.26 Tax items (x4)
+         *      -$4.32 Tax items (x4)
          */
         invoiceItems.addAll(additionalInvoiceItems);
         additionalInvoiceItems = avaTaxInvoicePluginApi.getAdditionalInvoiceItems(invoice, false, pluginProperties, callContext);
@@ -148,27 +148,27 @@ public class TestAvaTaxInvoicePluginApi extends AvaTaxRemoteTestBase {
         /*
          * Scenario 3A: second item adjustment on existing invoice
          *     $100    Taxable item I1
-         *       $8.5  Tax items (x4)
+         *       $8.63 Tax items (x4)
          *     -$50    Item adjustment I2
-         *      -$4.26 Tax items (x4)
+         *      -$4.32 Tax items (x4)
          *     -$50    Item adjustment I3
          */
         final InvoiceItem itemAdjustment3 = TestUtils.buildInvoiceItem(invoice, InvoiceItemType.ITEM_ADJ, new BigDecimal("-50"), taxableItem1.getId());
         invoiceItems.add(itemAdjustment3);
         additionalInvoiceItems = avaTaxInvoicePluginApi.getAdditionalInvoiceItems(invoice, false, pluginProperties, callContext);
-        // 4 TAX items expected (total -$4.26)
+        // 4 TAX items expected (total -$4.32)
         // Note: due to rounding, more tax is returned than initially taxed (the value comes straight from AvaTax).
         // To avoid this, in case of multiple item adjustments, you might have to return tax manually in AvaTax.
-        checkTaxes(additionalInvoiceItems, 4, new BigDecimal("-4.26"));
+        checkTaxes(additionalInvoiceItems, 4, new BigDecimal("-4.32"));
 
         /*
          * Scenario 3B: re-invoice of 3A (should be idempotent)
          *     $100    Taxable item I1
-         *       $8.5  Tax items (x4)
+         *       $8.63 Tax items (x4)
          *     -$50    Item adjustment I2
-         *      -$4.26 Tax items (x4)
+         *      -$4.32 Tax items (x4)
          *     -$50    Item adjustment I3
-         *      -$4.26 Tax items (x4)
+         *      -$4.32 Tax items (x4)
          */
         invoiceItems.addAll(additionalInvoiceItems);
         additionalInvoiceItems = avaTaxInvoicePluginApi.getAdditionalInvoiceItems(invoice, false, pluginProperties, callContext);
@@ -189,13 +189,13 @@ public class TestAvaTaxInvoicePluginApi extends AvaTaxRemoteTestBase {
         invoiceItems1.add(taxableItem1);
         pluginProperties.add(new PluginProperty(String.format("%s_%s", AvaTaxTaxCalculator.TAX_CODE, taxableItem1.getId()), "D9999999", false));
         List<InvoiceItem> additionalInvoiceItems = avaTaxInvoicePluginApi.getAdditionalInvoiceItems(invoice1, false, pluginProperties, callContext);
-        // 4 TAX items expected (total $8.5)
-        checkTaxes(additionalInvoiceItems, 4, new BigDecimal("8.5"));
+        // 4 TAX items expected (total $8.63)
+        checkTaxes(additionalInvoiceItems, 4, new BigDecimal("8.63"));
 
         /*
          * Scenario 1B: re-invoice of 1A (should be idempotent)
-         *     $100   Taxable item I1
-         *       $8.5 Tax items (x4)
+         *     $100    Taxable item I1
+         *       $8.63 Tax items (x4)
          */
         invoiceItems1.addAll(additionalInvoiceItems);
         additionalInvoiceItems = avaTaxInvoicePluginApi.getAdditionalInvoiceItems(invoice1, false, pluginProperties, callContext);
@@ -213,13 +213,13 @@ public class TestAvaTaxInvoicePluginApi extends AvaTaxRemoteTestBase {
         Mockito.when(osgiKillbillAPI.getInvoiceUserApi().getInvoiceByInvoiceItem(Mockito.eq(taxableItem1.getId()), Mockito.<TenantContext>any()))
                .thenReturn(invoice1);
         additionalInvoiceItems = avaTaxInvoicePluginApi.getAdditionalInvoiceItems(invoice2, false, pluginProperties, callContext);
-        // 4 TAX items expected (total -$4.26)
-        checkTaxes(additionalInvoiceItems, 4, new BigDecimal("-4.26"));
+        // 4 TAX items expected (total -$4.32)
+        checkTaxes(additionalInvoiceItems, 4, new BigDecimal("-4.32"));
 
         /*
          * Scenario 2B: re-invoice of 2A (should be idempotent)
          *     -$50    Repair I2 (points to I1 on previous invoice)
-         *      -$4.26 Tax items (x4)
+         *      -$4.32 Tax items (x4)
          */
         invoiceItems2.addAll(additionalInvoiceItems);
         additionalInvoiceItems = avaTaxInvoicePluginApi.getAdditionalInvoiceItems(invoice2, false, pluginProperties, callContext);

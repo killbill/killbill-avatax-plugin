@@ -58,7 +58,8 @@ public class AvaTaxClient extends HttpClient {
               ClientUtils.getIntegerProperty(properties, "proxyPort"),
               ClientUtils.getBooleanProperty(properties, "strictSSL"),
               MoreObjects.firstNonNull(ClientUtils.getIntegerProperty(properties, "connectTimeout"), 10000),
-              MoreObjects.firstNonNull(ClientUtils.getIntegerProperty(properties, "readTimeout"), 60000));
+              MoreObjects.firstNonNull(ClientUtils.getIntegerProperty(properties, "readTimeout"), 60000),
+              MoreObjects.firstNonNull(ClientUtils.getIntegerProperty(properties, "requestTimeout"), 60000));
         this.companyCode = properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "companyCode");
         this.commitDocuments = Boolean.parseBoolean(properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "commitDocuments"));
     }

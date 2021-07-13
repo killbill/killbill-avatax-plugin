@@ -1,3 +1,7 @@
+0.8.3
+    Make HTTP client request timeout configurable
+    Update killbill-oss-parent to 0.144.52
+
 0.8.2
     Update killbill-oss-parent to 0.144.49
 

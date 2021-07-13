@@ -52,12 +52,8 @@ public class CreateTransactionModel {
 
     public String simplifiedToString() {
         final StringBuilder sb = new StringBuilder();
-        if (!commit) {
-            // AvaTax id, useful only if the document is persisted
-            sb.append("code=").append(code);
-        } else {
-            sb.append("commit=false");
-        }
+        sb.append("code=").append(code);
+        sb.append(", commit=").append(commit);
         sb.append(", description=").append(description); // Kill Bill invoiceId
         sb.append(", referenceCode=").append(referenceCode); // Kill Bill original invoiceId
         sb.append(", lines=[");

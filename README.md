@@ -73,6 +73,9 @@ For both APIs, the following properties are optional:
 * `org.killbill.billing.plugin.avatax.proxyHost`: proxy host
 * `org.killbill.billing.plugin.avatax.proxyPort`: proxy port
 * `org.killbill.billing.plugin.avatax.strictSSL`: if false, unverified certificates are trusted
+* `org.killbill.billing.plugin.avatax.connectTimeout`: maximum time in millisecond the client can wait when connecting to a remote host
+* `org.killbill.billing.plugin.avatax.readTimeout`: maximum time in millisecond the client can stay idle
+* `org.killbill.billing.plugin.avatax.requestTimeout`: maximum time in millisecond the client waits until the response is completed
 
 These properties can be specified globally via System Properties or on a per tenant basis:
 

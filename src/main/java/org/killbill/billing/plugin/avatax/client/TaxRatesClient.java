@@ -1,7 +1,7 @@
 /*
  * Copyright 2014-2020 Groupon, Inc
- * Copyright 2020-2020 Equinix, Inc
- * Copyright 2014-2020 The Billing Project, LLC
+ * Copyright 2020-2021 Equinix, Inc
+ * Copyright 2014-2021 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -32,6 +32,7 @@ import org.killbill.billing.plugin.util.http.HttpClient;
 import org.killbill.billing.plugin.util.http.InvalidRequest;
 import org.killbill.billing.plugin.util.http.ResponseFormat;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
 
 public class TaxRatesClient extends HttpClient {
@@ -44,7 +45,10 @@ public class TaxRatesClient extends HttpClient {
               properties.getProperty(AvaTaxActivator.TAX_RATES_API_PROPERTY_PREFIX + "licenseKey"),
               properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "proxyHost"),
               ClientUtils.getIntegerProperty(properties, "proxyPort"),
-              ClientUtils.getBooleanProperty(properties, "strictSSL"));
+              ClientUtils.getBooleanProperty(properties, "strictSSL"),
+              MoreObjects.firstNonNull(ClientUtils.getIntegerProperty(properties, "connectTimeout"), 10000),
+              MoreObjects.firstNonNull(ClientUtils.getIntegerProperty(properties, "readTimeout"), 60000),
+              MoreObjects.firstNonNull(ClientUtils.getIntegerProperty(properties, "requestTimeout"), 60000));
     }
 
     public boolean isConfigured() {

@@ -33,6 +33,7 @@ import org.joda.time.LocalDate;
 import org.killbill.billing.account.api.Account;
 import org.killbill.billing.invoice.api.Invoice;
 import org.killbill.billing.invoice.api.InvoiceItem;
+import org.killbill.billing.invoice.api.InvoiceStatus;
 import org.killbill.billing.osgi.libs.killbill.OSGIKillbillAPI;
 import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.api.PluginProperties;
@@ -96,7 +97,7 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
                                                         final LocalDate utcToday) throws AvaTaxClientException, SQLException {
         final AvaTaxClient avaTaxClient = avaTaxConfigurationHandler.getConfigurable(kbTenantId);
         final String companyCode = avaTaxClient.getCompanyCode();
-        final boolean shouldCommitDocuments = !dryRun && avaTaxClient.shouldCommitDocuments();
+        final boolean shouldCommitDocuments = avaTaxClient.shouldCommitDocuments();
 
         final CreateTransactionModel taxRequest = toTaxRequest(companyCode,
                                                                account,
@@ -104,7 +105,8 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
                                                                taxableItems.values(),
                                                                adjustmentItems,
                                                                originalInvoiceReferenceCode,
-                                                               !shouldCommitDocuments,
+                                                               dryRun,
+                                                               shouldCommitDocuments,
                                                                pluginProperties,
                                                                utcToday);
         logger.info("CreateTransaction req: {}", taxRequest.simplifiedToString());
@@ -181,15 +183,15 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
      * the <b>taxableItems</b> must already be committed in AvaTax (Return). You cannot create and adjust items at the same time.
      * <p/>
      * In case of subsequent Return, only pass the new adjustments in <b>adjustmentItems</b>.
-     *
      * @param companyCode                  Company code
      * @param account                      Kill Bill account
      * @param invoice                      Kill Bill invoice associated with the taxable items (either the new invoice or an historical invoice for returns)
      * @param taxableItems                 new taxable invoice items or original, already taxed, items if they're being adjusted
      * @param adjustmentItems              new taxableItem adjustment items, used to compute the amount of tax to return (null for Sales document), keyed by taxable item id
      * @param originalInvoiceReferenceCode the original AvaTax reference code (null for Sales document)
-     * @param pluginProperties             Kill Bill plugin properties
      * @param dryRun                       true if the invoice won't be persisted
+     * @param shouldCommitDocuments        true if the AvaTax document should be committed
+     * @param pluginProperties             Kill Bill plugin properties
      * @param utcToday                     today's date
      */
     private CreateTransactionModel toTaxRequest(final String companyCode,
@@ -199,6 +201,7 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
                                                 @Nullable final Map<UUID, List<InvoiceItem>> adjustmentItems,
                                                 @Nullable final String originalInvoiceReferenceCode,
                                                 final boolean dryRun,
+                                                final boolean shouldCommitDocuments,
                                                 final Iterable<PluginProperty> pluginProperties,
                                                 final LocalDate utcToday) {
         Preconditions.checkState((originalInvoiceReferenceCode == null && (adjustmentItems == null || adjustmentItems.isEmpty())) ||
@@ -230,8 +233,8 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
         } else {
             // The document is a permanent invoice; document and tax calculation results are saved in the tax history
             taxRequest.type = originalInvoiceReferenceCode == null ? DocType.SalesInvoice : DocType.ReturnInvoice;
-            // Commit the invoice in AvaTax
-            taxRequest.commit = true;
+            // Commit the invoice in AvaTax if the invoice is being committed (don't commit DRAFT invoices)
+            taxRequest.commit = shouldCommitDocuments && invoice.getStatus() == InvoiceStatus.COMMITTED;
         }
 
         taxRequest.customerCode = MoreObjects.firstNonNull(account.getExternalKey(), account.getId()).toString();

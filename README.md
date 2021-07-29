@@ -122,6 +122,8 @@ Set the `customerUsageType` custom field on the account object (e.g. `E` for cha
 
 See [Handling tax exempt customers](https://help.avalara.com/Avalara_AvaTax_Update/Options_for_exempting_customers) for more details.
 
+Note that you can also skip an account entirely by setting the plugin property `AVALARA_SKIP` at runtime (the plugin property value doesn't matter, it just cannot be blank).
+
 ### Setting tax codes
 
 There are several ways to configure tax codes:

@@ -54,7 +54,20 @@ public abstract class AvaTaxRemoteTestBase {
 
     @BeforeMethod(groups = "integration")
     public void setUpBeforeMethod2() throws Exception {
-        final Properties properties = TestUtils.loadProperties(AVATAX_PROPERTIES);
+        Properties properties = new Properties();
+        try {
+            properties = TestUtils.loadProperties(AVATAX_PROPERTIES);
+        } catch (final RuntimeException ignored) {
+            // Look up environment variables instead
+            properties.put("org.killbill.billing.plugin.avatax.url", System.getenv("AVATAX_URL"));
+            properties.put("org.killbill.billing.plugin.avatax.accountId", System.getenv("AVATAX_ACCOUNT_ID"));
+            properties.put("org.killbill.billing.plugin.avatax.licenseKey", System.getenv("AVATAX_LICENSE_KEY"));
+            properties.put("org.killbill.billing.plugin.avatax.companyCode", System.getenv("AVATAX_COMPANY_CODE"));
+            properties.put("org.killbill.billing.plugin.avatax.commitDocuments", System.getenv("AVATAX_COMMIT_DOCUMENTS"));
+            properties.put("org.killbill.billing.plugin.avatax.taxratesapi.url", System.getenv("AVATAX_TAXRATESAPI_URL"));
+            properties.put("org.killbill.billing.plugin.avatax.taxratesapi.accountId", System.getenv("AVATAX_TAXRATESAPI_ACCOUNT_ID"));
+            properties.put("org.killbill.billing.plugin.avatax.taxratesapi.licenseKey", System.getenv("AVATAX_TAXRATESAPI_LICENSE_KEY"));
+        }
         buildAvataxClient(properties);
         buildTaxRatesClient(properties);
     }

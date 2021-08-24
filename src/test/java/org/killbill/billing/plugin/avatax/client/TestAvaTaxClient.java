@@ -1,7 +1,7 @@
 /*
  * Copyright 2014-2020 Groupon, Inc
- * Copyright 2020-2020 Equinix, Inc
- * Copyright 2014-2020 The Billing Project, LLC
+ * Copyright 2020-2021 Equinix, Inc
+ * Copyright 2014-2021 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -46,7 +46,7 @@ public class TestAvaTaxClient extends AvaTaxRemoteTestBase {
         createTransactionModel.debugLevel = "Diagnostic";
         // To see it in the UI
         createTransactionModel.type = DocType.SalesInvoice;
-        createTransactionModel.commit = true;
+        createTransactionModel.commit = false;
 
         final AddressLocationInfo addressLocationInfo = new AddressLocationInfo();
         addressLocationInfo.line1 = "45 Fremont Street";
@@ -68,7 +68,8 @@ public class TestAvaTaxClient extends AvaTaxRemoteTestBase {
         Assert.assertNotEquals(result.id, 0);
         Assert.assertNotNull(result.code);
         Assert.assertNotEquals(result.companyId, 0);
-        Assert.assertEquals(result.status, "Committed");
+        // See https://help.avalara.com/Avalara_AvaTax_Update/Transaction_status_in_AvaTax
+        Assert.assertEquals(result.status, "Saved");
         Assert.assertEquals(result.type, "SalesInvoice");
         Assert.assertEquals(result.lines.length, 1);
         Assert.assertTrue(result.lines[0].details.length >= 1);
@@ -76,5 +77,17 @@ public class TestAvaTaxClient extends AvaTaxRemoteTestBase {
         Assert.assertTrue(result.summary.length >= 1);
         // Diagnostic level
         Assert.assertTrue(result.messages.length > 1);
+
+        TransactionModel committedTransaction = client.commitTransaction(result.code);
+        Assert.assertEquals(committedTransaction.status, "Committed");
+
+        committedTransaction = client.getTransactionByCode(result.code);
+        Assert.assertEquals(committedTransaction.status, "Committed");
+
+        TransactionModel voidedTransaction = client.voidTransaction(result.code);
+        Assert.assertEquals(voidedTransaction.status, "Cancelled");
+
+        voidedTransaction = client.getTransactionByCode(result.code);
+        Assert.assertEquals(voidedTransaction.status, "Cancelled");
     }
 }

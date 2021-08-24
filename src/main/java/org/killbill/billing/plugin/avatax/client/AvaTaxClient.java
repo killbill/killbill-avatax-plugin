@@ -1,7 +1,7 @@
 /*
  * Copyright 2014-2020 Groupon, Inc
- * Copyright 2020-2020 Equinix, Inc
- * Copyright 2014-2020 The Billing Project, LLC
+ * Copyright 2020-2021 Equinix, Inc
+ * Copyright 2014-2021 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -48,6 +48,7 @@ public class AvaTaxClient extends HttpClient {
     private static final Logger logger = LoggerFactory.getLogger(AvaTaxClient.class);
 
     private final String companyCode;
+    private final String sanitizedCompanyCode;
     private final boolean commitDocuments;
 
     public AvaTaxClient(final Properties properties) throws GeneralSecurityException {
@@ -60,7 +61,8 @@ public class AvaTaxClient extends HttpClient {
               MoreObjects.firstNonNull(ClientUtils.getIntegerProperty(properties, "connectTimeout"), 10000),
               MoreObjects.firstNonNull(ClientUtils.getIntegerProperty(properties, "readTimeout"), 60000),
               MoreObjects.firstNonNull(ClientUtils.getIntegerProperty(properties, "requestTimeout"), 60000));
-        this.companyCode = properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "companyCode");
+        this.companyCode = properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "companyCode", "DEFAULT");
+        this.sanitizedCompanyCode = sanitizeCompanyCode(this.companyCode);
         this.commitDocuments = Boolean.parseBoolean(properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "commitDocuments"));
     }
 
@@ -86,6 +88,103 @@ public class AvaTaxClient extends HttpClient {
             return doCall(POST,
                           url + "/transactions/create",
                           serialize(createTransactionModel),
+                          DEFAULT_OPTIONS,
+                          ImmutableMap.<String, String>of("X-Avalara-Client", KILL_BILL_CLIENT_HEADER),
+                          TransactionModel.class,
+                          ResponseFormat.JSON);
+        } catch (final InterruptedException e) {
+            throw new AvaTaxClientException(e);
+        } catch (final ExecutionException e) {
+            throw new AvaTaxClientException(e);
+        } catch (final TimeoutException e) {
+            throw new AvaTaxClientException(e);
+        } catch (final IOException e) {
+            throw new AvaTaxClientException(e);
+        } catch (final URISyntaxException e) {
+            throw new AvaTaxClientException(e);
+        } catch (final InvalidRequest e) {
+            try {
+                final AvaTaxErrors errors = deserializeResponse(e.getResponse(), AvaTaxErrors.class, ResponseFormat.JSON);
+                throw new AvaTaxClientException(errors, e);
+            } catch (final IOException e1) {
+                logger.warn("Invalid AvaTax request: status={}", e.getResponse() == null ? null : e.getResponse().getStatusCode());
+                throw new AvaTaxClientException(e);
+            }
+        }
+    }
+
+    public TransactionModel commitTransaction(final String transactionCode) throws AvaTaxClientException {
+        logger.info("Committing transaction {}", transactionCode);
+
+        try {
+            // See https://developer.avalara.com/api-reference/avatax/rest/v2/methods/Transactions/CommitTransaction/
+            return doCall(POST,
+                          url + "/companies/" + sanitizedCompanyCode + "/transactions/" + transactionCode + "/commit",
+                          serialize(ImmutableMap.<String, Boolean>of("commit", true)),
+                          DEFAULT_OPTIONS,
+                          ImmutableMap.<String, String>of("X-Avalara-Client", KILL_BILL_CLIENT_HEADER),
+                          TransactionModel.class,
+                          ResponseFormat.JSON);
+        } catch (final InterruptedException e) {
+            throw new AvaTaxClientException(e);
+        } catch (final ExecutionException e) {
+            throw new AvaTaxClientException(e);
+        } catch (final TimeoutException e) {
+            throw new AvaTaxClientException(e);
+        } catch (final IOException e) {
+            throw new AvaTaxClientException(e);
+        } catch (final URISyntaxException e) {
+            throw new AvaTaxClientException(e);
+        } catch (final InvalidRequest e) {
+            try {
+                final AvaTaxErrors errors = deserializeResponse(e.getResponse(), AvaTaxErrors.class, ResponseFormat.JSON);
+                throw new AvaTaxClientException(errors, e);
+            } catch (final IOException e1) {
+                logger.warn("Invalid AvaTax request: status={}", e.getResponse() == null ? null : e.getResponse().getStatusCode());
+                throw new AvaTaxClientException(e);
+            }
+        }
+    }
+
+    public TransactionModel voidTransaction(final String transactionCode) throws AvaTaxClientException {
+        logger.info("Voiding transaction {}", transactionCode);
+
+        try {
+            // See https://developer.avalara.com/api-reference/avatax/rest/v2/methods/Transactions/VoidTransaction/
+            return doCall(POST,
+                          url + "/companies/" + sanitizedCompanyCode + "/transactions/" + transactionCode + "/void",
+                          serialize(ImmutableMap.<String, String>of("code", "DocVoided")),
+                          DEFAULT_OPTIONS,
+                          ImmutableMap.<String, String>of("X-Avalara-Client", KILL_BILL_CLIENT_HEADER),
+                          TransactionModel.class,
+                          ResponseFormat.JSON);
+        } catch (final InterruptedException e) {
+            throw new AvaTaxClientException(e);
+        } catch (final ExecutionException e) {
+            throw new AvaTaxClientException(e);
+        } catch (final TimeoutException e) {
+            throw new AvaTaxClientException(e);
+        } catch (final IOException e) {
+            throw new AvaTaxClientException(e);
+        } catch (final URISyntaxException e) {
+            throw new AvaTaxClientException(e);
+        } catch (final InvalidRequest e) {
+            try {
+                final AvaTaxErrors errors = deserializeResponse(e.getResponse(), AvaTaxErrors.class, ResponseFormat.JSON);
+                throw new AvaTaxClientException(errors, e);
+            } catch (final IOException e1) {
+                logger.warn("Invalid AvaTax request: status={}", e.getResponse() == null ? null : e.getResponse().getStatusCode());
+                throw new AvaTaxClientException(e);
+            }
+        }
+    }
+
+    public TransactionModel getTransactionByCode(final String transactionCode) throws AvaTaxClientException {
+        try {
+            // See https://developer.avalara.com/api-reference/avatax/rest/v2/methods/Transactions/GetTransactionByCode/
+            return doCall(GET,
+                          url + "/companies/" + sanitizedCompanyCode + "/transactions/" + transactionCode,
+                          null,
                           DEFAULT_OPTIONS,
                           ImmutableMap.<String, String>of("X-Avalara-Client", KILL_BILL_CLIENT_HEADER),
                           TransactionModel.class,
@@ -142,5 +241,16 @@ public class AvaTaxClient extends HttpClient {
         } catch (final JsonProcessingException e) {
             throw new AvaTaxClientException(e);
         }
+    }
+
+    private String sanitizeCompanyCode(final String companyCode) {
+        String companyCodeSanitized = companyCode;
+        companyCodeSanitized = companyCodeSanitized.replaceAll("/", "_-ava2f-_");
+        companyCodeSanitized = companyCodeSanitized.replaceAll("\\+", "_-ava2b-_");
+        companyCodeSanitized = companyCodeSanitized.replaceAll("\\?", "_-ava3f-_");
+        companyCodeSanitized = companyCodeSanitized.replaceAll("%", "_-ava25-_");
+        companyCodeSanitized = companyCodeSanitized.replaceAll("#", "_-ava23-_");
+        companyCodeSanitized = companyCodeSanitized.replaceAll(" ", "%20");
+        return companyCodeSanitized;
     }
 }

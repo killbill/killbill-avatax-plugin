@@ -176,6 +176,46 @@ curl -v \
      http://127.0.0.1:8080/plugins/killbill-avatax/taxCodes/Super
 ```
 
+### Transactions API
+
+The plugin offers convenient pass-through APIs to retrieve, commit, and void documents:
+
+```
+curl -v \
+     -u admin:password \
+     -H 'X-Killbill-ApiKey: bob' \
+     -H 'X-Killbill-ApiSecret: lazar' \
+     -H 'X-Killbill-CreatedBy: admin' \
+     -H 'Accept: application/json' \
+     http://127.0.0.1:8080/plugins/killbill-avatax/transactions?kbInvoiceId=<INVOICE_ID>
+
+curl -v \
+     -u admin:password \
+     -H 'X-Killbill-ApiKey: bob' \
+     -H 'X-Killbill-ApiSecret: lazar' \
+     -H 'X-Killbill-CreatedBy: admin' \
+     -H 'Accept: application/json' \
+     http://127.0.0.1:8080/plugins/killbill-avatax/transactions/<CODE>
+
+curl -v \
+     -X POST \
+     -u admin:password \
+     -H 'X-Killbill-ApiKey: bob' \
+     -H 'X-Killbill-ApiSecret: lazar' \
+     -H 'X-Killbill-CreatedBy: admin' \
+     -H 'Accept: application/json' \
+     http://127.0.0.1:8080/plugins/killbill-avatax/transactions/<CODE>/commit
+
+curl -v \
+     -X POST \
+     -u admin:password \
+     -H 'X-Killbill-ApiKey: bob' \
+     -H 'X-Killbill-ApiSecret: lazar' \
+     -H 'X-Killbill-CreatedBy: admin' \
+     -H 'Accept: application/json' \
+     http://127.0.0.1:8080/plugins/killbill-avatax/transactions/<CODE>/void
+```
+
 ## About
 
 Kill Bill is the leading Open-Source Subscription Billing & Payments Platform. For more information about the project, go to https://killbill.io/.

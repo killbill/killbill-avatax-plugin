@@ -32,19 +32,25 @@ import org.killbill.billing.catalog.api.CatalogApiException;
 import org.killbill.billing.catalog.api.Plan;
 import org.killbill.billing.catalog.api.StaticCatalog;
 import org.killbill.billing.invoice.api.Invoice;
-import org.killbill.billing.invoice.api.InvoiceApiException;
 import org.killbill.billing.invoice.api.InvoiceItem;
+import org.killbill.billing.invoice.plugin.api.InvoiceContext;
+import org.killbill.billing.invoice.plugin.api.OnSuccessInvoiceResult;
 import org.killbill.billing.osgi.libs.killbill.OSGIConfigPropertiesService;
 import org.killbill.billing.osgi.libs.killbill.OSGIKillbillAPI;
 import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.api.PluginProperties;
 import org.killbill.billing.plugin.api.invoice.PluginInvoicePluginApi;
+import org.killbill.billing.plugin.avatax.client.AvaTaxClient;
+import org.killbill.billing.plugin.avatax.client.AvaTaxClientException;
 import org.killbill.billing.plugin.avatax.core.AvaTaxConfigurationHandler;
 import org.killbill.billing.plugin.avatax.dao.AvaTaxDao;
+import org.killbill.billing.plugin.avatax.dao.gen.tables.records.AvataxResponsesRecord;
 import org.killbill.billing.util.callcontext.CallContext;
 import org.killbill.billing.util.callcontext.TenantContext;
 import org.killbill.billing.util.customfield.CustomField;
 import org.killbill.clock.Clock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
@@ -52,6 +58,11 @@ import com.google.common.collect.Lists;
 
 public class AvaTaxInvoicePluginApi extends PluginInvoicePluginApi {
 
+    private static final Logger logger = LoggerFactory.getLogger(AvalaraInvoicePluginApi.class);
+
+    private static final String INVOICE_OPERATION = "INVOICE_OPERATION";
+
+    private final AvaTaxConfigurationHandler avaTaxConfigurationHandler;
     private final AvaTaxDao dao;
     private final AvaTaxTaxCalculator calculator;
 
@@ -61,6 +72,7 @@ public class AvaTaxInvoicePluginApi extends PluginInvoicePluginApi {
                                   final OSGIConfigPropertiesService configProperties,
                                   final Clock clock) {
         super(killbillApi, configProperties, clock);
+        this.avaTaxConfigurationHandler = avaTaxConfigurationHandler;
         this.dao = dao;
         this.calculator = new AvaTaxTaxCalculator(avaTaxConfigurationHandler, dao, clock, killbillApi);
     }
@@ -80,6 +92,42 @@ public class AvaTaxInvoicePluginApi extends PluginInvoicePluginApi {
             // Prevent invoice generation
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public OnSuccessInvoiceResult onSuccessCall(final InvoiceContext context, final Iterable<PluginProperty> properties) {
+        final String invoiceOperation = PluginProperties.findPluginPropertyValue(INVOICE_OPERATION, properties);
+        if (invoiceOperation == null) {
+            return super.onSuccessCall(context, properties);
+        }
+
+        final Collection<String> docCodes = new HashSet<String>();
+        try {
+            // Find existing transactions
+            final List<AvataxResponsesRecord> responses = dao.getSuccessfulResponses(context.getInvoice().getId(), context.getTenantId());
+            for (final AvataxResponsesRecord response : responses) {
+                docCodes.add(response.getDocCode());
+            }
+        } catch (final SQLException e) {
+            logger.warn("Unable to {} transaction in Avalara", invoiceOperation, e);
+            // Don't fail the whole operation though
+        }
+
+        final AvaTaxClient avaTaxClient = avaTaxConfigurationHandler.getConfigurable(context.getTenantId());
+        for (final String docCode : docCodes) {
+            try {
+                if ("commit".equals(invoiceOperation)) {
+                    avaTaxClient.commitTransaction(docCode);
+                } else if ("void".equals(invoiceOperation)) {
+                    avaTaxClient.voidTransaction(docCode);
+                }
+            } catch (final AvaTaxClientException e) {
+                logger.warn("Unable to {} transaction in Avalara", invoiceOperation, e);
+                // Don't fail the whole operation though
+            }
+        }
+
+        return super.onSuccessCall(context, properties);
     }
 
     private void checkForTaxExemption(final Invoice invoice, final Collection<PluginProperty> properties, final TenantContext context) {

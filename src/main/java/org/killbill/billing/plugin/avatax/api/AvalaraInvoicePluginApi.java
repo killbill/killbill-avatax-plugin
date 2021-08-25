@@ -23,6 +23,9 @@ import java.util.UUID;
 
 import org.killbill.billing.invoice.api.Invoice;
 import org.killbill.billing.invoice.api.InvoiceItem;
+import org.killbill.billing.invoice.plugin.api.InvoiceContext;
+import org.killbill.billing.invoice.plugin.api.OnFailureInvoiceResult;
+import org.killbill.billing.invoice.plugin.api.OnSuccessInvoiceResult;
 import org.killbill.billing.osgi.libs.killbill.OSGIConfigPropertiesService;
 import org.killbill.billing.osgi.libs.killbill.OSGIKillbillAPI;
 import org.killbill.billing.payment.api.PluginProperty;
@@ -90,6 +93,54 @@ public class AvalaraInvoicePluginApi extends PluginInvoicePluginApi {
         } else {
             // Not configured for that tenant?
             return ImmutableList.<InvoiceItem>of();
+        }
+    }
+
+    @Override
+    public OnSuccessInvoiceResult onSuccessCall(final InvoiceContext context, final Iterable<PluginProperty> properties) {
+        if (PluginProperties.findPluginPropertyValue(AVALARA_SKIP, properties) != null) {
+            return super.onSuccessCall(context, properties);
+        }
+
+        final UUID kbTenantId = context.getTenantId();
+        final AvaTaxClient avaTaxClient = avaTaxConfigurationHandler.getConfigurable(kbTenantId);
+        final TaxRatesClient taxRatesClient = taxRatesConfigurationHandler.getConfigurable(kbTenantId);
+
+        // Note: there is a small window of doom here if the reconfiguration happens at the wrong time
+
+        if (avaTaxClient.isConfigured()) {
+            // If a per tenant taxRatesClient is configured and a global avaTaxClient, we would use the latter
+            // Should this behavior be configurable?
+            return avaTaxInvoicePluginApi.onSuccessCall(context, properties);
+        } else if (taxRatesClient.isConfigured()) {
+            return taxRatesInvoicePluginApi.onSuccessCall(context, properties);
+        } else {
+            // Not configured for that tenant?
+            return super.onSuccessCall(context, properties);
+        }
+    }
+
+    @Override
+    public OnFailureInvoiceResult onFailureCall(final InvoiceContext context, final Iterable<PluginProperty> properties) {
+        if (PluginProperties.findPluginPropertyValue(AVALARA_SKIP, properties) != null) {
+            return super.onFailureCall(context, properties);
+        }
+
+        final UUID kbTenantId = context.getTenantId();
+        final AvaTaxClient avaTaxClient = avaTaxConfigurationHandler.getConfigurable(kbTenantId);
+        final TaxRatesClient taxRatesClient = taxRatesConfigurationHandler.getConfigurable(kbTenantId);
+
+        // Note: there is a small window of doom here if the reconfiguration happens at the wrong time
+
+        if (avaTaxClient.isConfigured()) {
+            // If a per tenant taxRatesClient is configured and a global avaTaxClient, we would use the latter
+            // Should this behavior be configurable?
+            return avaTaxInvoicePluginApi.onFailureCall(context, properties);
+        } else if (taxRatesClient.isConfigured()) {
+            return taxRatesInvoicePluginApi.onFailureCall(context, properties);
+        } else {
+            // Not configured for that tenant?
+            return super.onFailureCall(context, properties);
         }
     }
 }

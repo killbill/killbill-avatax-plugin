@@ -85,9 +85,11 @@ public class AvaTaxActivator extends KillbillActivatorBase {
                                                          dataSource,
                                                          super.clock,
                                                          configProperties).withRouteClass(AvalaraHealthcheckServlet.class)
-                                                                          .withRouteClass(AvaTaxServlet.class)
+                                                                          .withRouteClass(AvaTaxTaxCodesServlet.class)
+                                                                          .withRouteClass(AvaTaxTransactionsServlet.class)
                                                                           .withService(avalaraHealthcheck)
                                                                           .withService(dao)
+                                                                          .withService(avaTaxConfigurationHandler)
                                                                           .build();
         final HttpServlet servlet = PluginApp.createServlet(pluginApp);
         registerServlet(context, servlet);

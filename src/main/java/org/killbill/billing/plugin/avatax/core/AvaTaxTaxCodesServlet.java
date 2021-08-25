@@ -1,7 +1,7 @@
 /*
  * Copyright 2014-2020 Groupon, Inc
- * Copyright 2020-2020 Equinix, Inc
- * Copyright 2014-2020 The Billing Project, LLC
+ * Copyright 2020-2021 Equinix, Inc
+ * Copyright 2014-2021 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -49,13 +49,13 @@ import com.google.inject.Inject;
 // Handle /plugins/killbill-avatax/taxCodes
 // Used by Kaui: https://github.com/killbill/killbill-avatax-ui/blob/master/lib/avatax/client.rb
 @Path("/taxCodes")
-public class AvaTaxServlet {
+public class AvaTaxTaxCodesServlet {
 
     private final AvaTaxDao dao;
     private final OSGIKillbillClock clock;
 
     @Inject
-    public AvaTaxServlet(final AvaTaxDao dao, final OSGIKillbillClock clock) {
+    public AvaTaxTaxCodesServlet(final AvaTaxDao dao, final OSGIKillbillClock clock) {
         this.dao = dao;
         this.clock = clock;
     }

@@ -51,6 +51,7 @@ jobs:
             org.killbill.billing.plugin.avatax.url=https://sandbox-rest.avatax.com/api/v2
             org.killbill.billing.plugin.avatax.accountId=${AVATAX_ACCOUNT_ID}
             org.killbill.billing.plugin.avatax.licenseKey=${AVATAX_LICENSE_KEY}
+            org.killbill.billing.plugin.avatax.companyCode=KB
             EOS
       - run: mvn clean install -Ptravis
       - run:
@@ -82,6 +83,7 @@ jobs:
             org.killbill.billing.plugin.avatax.url=https://sandbox-rest.avatax.com/api/v2
             org.killbill.billing.plugin.avatax.accountId=${AVATAX_ACCOUNT_ID}
             org.killbill.billing.plugin.avatax.licenseKey=${AVATAX_LICENSE_KEY}
+            org.killbill.billing.plugin.avatax.companyCode=KB
             EOS
       - run: mvn clean install -Pintegration-mysql
       - run:
@@ -113,6 +115,7 @@ jobs:
             org.killbill.billing.plugin.avatax.url=https://sandbox-rest.avatax.com/api/v2
             org.killbill.billing.plugin.avatax.accountId=${AVATAX_ACCOUNT_ID}
             org.killbill.billing.plugin.avatax.licenseKey=${AVATAX_LICENSE_KEY}
+            org.killbill.billing.plugin.avatax.companyCode=KB
             EOS
       - run: mvn clean install -Pintegration-postgresql
       - run:

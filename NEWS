@@ -1,3 +1,8 @@
+0.8.4
+    Set the AVALARA_SKIP plugin property to skip calculation
+    Automatically commit or void the transactions in Avalara whenever the invoice is committed or voided
+    Update to killbill-oss-parent 0.144.58
+
 0.8.3
     Don't commit documents associated with DRAFT invoices
     Make HTTP client request timeout configurable

@@ -50,6 +50,8 @@ public class AvaTaxClient extends HttpClient {
     private final String companyCode;
     private final String sanitizedCompanyCode;
     private final boolean commitDocuments;
+    // When true - skips adjustments which don't have corrrespnding previousInvoiceId
+    private final boolean skipAnomalousAdjustments;
 
     public AvaTaxClient(final Properties properties) throws GeneralSecurityException {
         super(properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "url"),
@@ -60,14 +62,19 @@ public class AvaTaxClient extends HttpClient {
               ClientUtils.getBooleanProperty(properties, "strictSSL"),
               MoreObjects.firstNonNull(ClientUtils.getIntegerProperty(properties, "connectTimeout"), 10000),
               MoreObjects.firstNonNull(ClientUtils.getIntegerProperty(properties, "readTimeout"), 60000),
-              MoreObjects.firstNonNull(ClientUtils.getIntegerProperty(properties, "requestTimeout"), 60000));
+              MoreObjects.firstNonNull(ClientUtils.getIntegerProperty(properties, "requestTimeout"), 60000));    
         this.companyCode = properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "companyCode", "DEFAULT");
         this.sanitizedCompanyCode = sanitizeCompanyCode(this.companyCode);
         this.commitDocuments = Boolean.parseBoolean(properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "commitDocuments"));
+        this.skipAnomalousAdjustments = Boolean.parseBoolean(properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "adjustments.lenientMode"));
     }
 
     public String getCompanyCode() {
         return companyCode;
+    }
+
+    public boolean shouldSkipAnomalousAdjustments() {
+        return this.skipAnomalousAdjustments;
     }
 
     public boolean shouldCommitDocuments() {

@@ -67,6 +67,7 @@ public abstract class AvaTaxRemoteTestBase {
             properties.put("org.killbill.billing.plugin.avatax.taxratesapi.url", System.getenv("AVATAX_TAXRATESAPI_URL"));
             properties.put("org.killbill.billing.plugin.avatax.taxratesapi.accountId", System.getenv("AVATAX_TAXRATESAPI_ACCOUNT_ID"));
             properties.put("org.killbill.billing.plugin.avatax.taxratesapi.licenseKey", System.getenv("AVATAX_TAXRATESAPI_LICENSE_KEY"));
+            
         }
         buildAvataxClient(properties);
         buildTaxRatesClient(properties);

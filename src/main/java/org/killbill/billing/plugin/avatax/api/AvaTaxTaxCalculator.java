@@ -216,8 +216,7 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
                                         "Invalid combination of originalInvoiceReferenceCode %s and adjustments %s", originalInvoiceReferenceCode, adjustmentItems);
         } catch (IllegalStateException e) {                                     
             if (skipAnomalousAdjustments) {
-                logger.warn("Returning null tax request instead of throwing IllegalStateException exception for Invalid combination of originalInvoiceReferenceCode {} and adjustments {}",
-                originalInvoiceReferenceCode, adjustmentItems);
+                logger.warn("Ignoring tax request due to inconsistent adjustments: originalInvoiceReferenceCode={}, adjustmentItems={}", originalInvoiceReferenceCode, adjustmentItems);
                 return null;
             } else {
                 throw e;

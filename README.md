@@ -53,6 +53,7 @@ The following properties are optional:
 
 * `org.killbill.billing.plugin.avatax.companyCode`: your default company code (can be passed using the plugin property `companyCode`)
 * `org.killbill.billing.plugin.avatax.commitDocuments`: whether invoices should be committed to Avalara
+* `org.killbill.billing.plugin.avatax.adjustments.lenientMode`, when true Avatax-plugin skips any adjustment items from Invoice for which the previousInvoiceId is not present (i.e. missing) or else leads to IllegalStateException and fails to generate invoice
 
 ### TaxRates API
 

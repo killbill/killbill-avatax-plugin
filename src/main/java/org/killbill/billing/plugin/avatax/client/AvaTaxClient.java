@@ -50,7 +50,7 @@ public class AvaTaxClient extends HttpClient {
     private final String companyCode;
     private final String sanitizedCompanyCode;
     private final boolean commitDocuments;
-    // When true - skips adjustments which don't have correspnding previousInvoiceId
+    // When true - skips adjustments which don't have corresponding previousInvoiceId
     private final boolean skipAnomalousAdjustments;
 
     public AvaTaxClient(final Properties properties) throws GeneralSecurityException {

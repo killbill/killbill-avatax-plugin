@@ -108,7 +108,11 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
                                                                dryRun,
                                                                shouldCommitDocuments,
                                                                pluginProperties,
-                                                               utcToday);
+                                                               utcToday,
+                                                               avaTaxClient.shouldSkipAnomalousAdjustments());
+        if (taxRequest == null) {
+            return ImmutableList.<InvoiceItem>of();
+        }                                                       
         logger.info("CreateTransaction req: {}", taxRequest.simplifiedToString());
 
         try {
@@ -203,10 +207,21 @@ public class AvaTaxTaxCalculator extends AvaTaxTaxCalculatorBase {
                                                 final boolean dryRun,
                                                 final boolean shouldCommitDocuments,
                                                 final Iterable<PluginProperty> pluginProperties,
-                                                final LocalDate utcToday) {
-        Preconditions.checkState((originalInvoiceReferenceCode == null && (adjustmentItems == null || adjustmentItems.isEmpty())) ||
-                                 (originalInvoiceReferenceCode != null && (adjustmentItems != null && !adjustmentItems.isEmpty())),
-                                 "Invalid combination of originalInvoiceReferenceCode %s and adjustments %s", originalInvoiceReferenceCode, adjustmentItems);
+                                                final LocalDate utcToday,
+                                                final boolean skipAnomalousAdjustments) {
+        
+        try {
+            Preconditions.checkState((originalInvoiceReferenceCode == null && (adjustmentItems == null || adjustmentItems.isEmpty())) ||
+                                        (originalInvoiceReferenceCode != null && (adjustmentItems != null && !adjustmentItems.isEmpty())),
+                                        "Invalid combination of originalInvoiceReferenceCode %s and adjustments %s", originalInvoiceReferenceCode, adjustmentItems);
+        } catch (IllegalStateException e) {                                     
+            if (skipAnomalousAdjustments) {
+                logger.warn("Ignoring tax request due to inconsistent adjustments: originalInvoiceReferenceCode={}, adjustmentItems={}", originalInvoiceReferenceCode, adjustmentItems);
+                return null;
+            } else {
+                throw e;
+            }     
+        }                                 
 
         Preconditions.checkState((adjustmentItems == null || adjustmentItems.isEmpty()) || adjustmentItems.size() == taxableItems.size(),
                                  "Invalid number of adjustments %s for taxable items %s", adjustmentItems, taxableItems);

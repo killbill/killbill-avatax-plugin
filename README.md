@@ -8,15 +8,16 @@ This integration delegates computation of sales taxes to Avalara, which will app
 ## Kill Bill compatibility
 
 | Plugin version | Kill Bill version | AvaTax API      |
-| -------------: | ----------------: | --------------: |
-| 0.1.y          | 0.14.z            | Legacy REST API |
-| 0.2.y          | 0.15.z            | Legacy REST API |
-| 0.3.y          | 0.16.z            | Legacy REST API |
-| 0.4.y          | 0.18.z            | Legacy REST API |
-| 0.5.y          | 0.19.z            | Legacy REST API |
-| 0.6.y          | 0.20.z            | Legacy REST API |
-| 0.7.y          | 0.22.z            | Legacy REST API |
-| 0.8.y          | 0.22.z            | REST API        |
+|---------------:|------------------:| --------------: |
+|          0.1.y |            0.14.z | Legacy REST API |
+|          0.2.y |            0.15.z | Legacy REST API |
+|          0.3.y |            0.16.z | Legacy REST API |
+|          0.4.y |            0.18.z | Legacy REST API |
+|          0.5.y |            0.19.z | Legacy REST API |
+|          0.6.y |            0.20.z | Legacy REST API |
+|          0.7.y |            0.22.z | Legacy REST API |
+|          0.8.y |            0.22.z | REST API        |
+|          0.9.y |            0.23.z | REST API        |
 
 We've upgraded numerous dependencies in 0.8.x (required for Java 11 support).
 
@@ -75,7 +76,6 @@ For both APIs, the following properties are optional:
 * `org.killbill.billing.plugin.avatax.proxyPort`: proxy port
 * `org.killbill.billing.plugin.avatax.strictSSL`: if false, unverified certificates are trusted
 * `org.killbill.billing.plugin.avatax.connectTimeout`: maximum time in millisecond the client can wait when connecting to a remote host
-* `org.killbill.billing.plugin.avatax.readTimeout`: maximum time in millisecond the client can stay idle
 * `org.killbill.billing.plugin.avatax.requestTimeout`: maximum time in millisecond the client waits until the response is completed
 
 These properties can be specified globally via System Properties or on a per tenant basis:

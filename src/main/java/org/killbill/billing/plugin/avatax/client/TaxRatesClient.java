@@ -1,7 +1,7 @@
 /*
  * Copyright 2014-2020 Groupon, Inc
- * Copyright 2020-2021 Equinix, Inc
- * Copyright 2014-2021 The Billing Project, LLC
+ * Copyright 2020-2022 Equinix, Inc
+ * Copyright 2014-2022 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -19,11 +19,11 @@
 package org.killbill.billing.plugin.avatax.client;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URISyntaxException;
 import java.security.GeneralSecurityException;
 import java.util.Properties;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
 
 import org.killbill.billing.plugin.avatax.client.model.PingResult;
 import org.killbill.billing.plugin.avatax.client.model.TaxRateResult;
@@ -32,8 +32,10 @@ import org.killbill.billing.plugin.util.http.HttpClient;
 import org.killbill.billing.plugin.util.http.InvalidRequest;
 import org.killbill.billing.plugin.util.http.ResponseFormat;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.io.CharStreams;
 
 public class TaxRatesClient extends HttpClient {
 
@@ -47,7 +49,6 @@ public class TaxRatesClient extends HttpClient {
               ClientUtils.getIntegerProperty(properties, "proxyPort"),
               ClientUtils.getBooleanProperty(properties, "strictSSL"),
               MoreObjects.firstNonNull(ClientUtils.getIntegerProperty(properties, "connectTimeout"), 10000),
-              MoreObjects.firstNonNull(ClientUtils.getIntegerProperty(properties, "readTimeout"), 60000),
               MoreObjects.firstNonNull(ClientUtils.getIntegerProperty(properties, "requestTimeout"), 60000));
     }
 
@@ -67,10 +68,6 @@ public class TaxRatesClient extends HttpClient {
                           TaxRateResult.class,
                           ResponseFormat.JSON);
         } catch (final InterruptedException e) {
-            throw new AvaTaxClientException(e);
-        } catch (final ExecutionException e) {
-            throw new AvaTaxClientException(e);
-        } catch (final TimeoutException e) {
             throw new AvaTaxClientException(e);
         } catch (final IOException e) {
             throw new AvaTaxClientException(e);
@@ -100,10 +97,6 @@ public class TaxRatesClient extends HttpClient {
                           ResponseFormat.JSON);
         } catch (final InterruptedException e) {
             throw new AvaTaxClientException(e);
-        } catch (final ExecutionException e) {
-            throw new AvaTaxClientException(e);
-        } catch (final TimeoutException e) {
-            throw new AvaTaxClientException(e);
         } catch (final IOException e) {
             throw new AvaTaxClientException(e);
         } catch (final URISyntaxException e) {
@@ -111,9 +104,13 @@ public class TaxRatesClient extends HttpClient {
         } catch (final InvalidRequest e) {
             String message = e.getMessage();
             if (e.getResponse() != null) {
-                final String responseBody = e.getResponse().getResponseBody();
+                final InputStream responseBody = e.getResponse().body();
                 if (responseBody != null) {
-                    message += "[" + responseBody + "]";
+                    try {
+                        message += "[" + CharStreams.toString(new InputStreamReader(responseBody, Charsets.UTF_8)) + "]";
+                    } catch (final IOException ex) {
+                        message = ex.toString();
+                    }
                 }
             }
             throw new AvaTaxClientException(message, e);
@@ -131,10 +128,6 @@ public class TaxRatesClient extends HttpClient {
                           PingResult.class,
                           ResponseFormat.JSON);
         } catch (final InterruptedException e) {
-            throw new AvaTaxClientException(e);
-        } catch (final ExecutionException e) {
-            throw new AvaTaxClientException(e);
-        } catch (final TimeoutException e) {
             throw new AvaTaxClientException(e);
         } catch (final IOException e) {
             throw new AvaTaxClientException(e);

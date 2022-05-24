@@ -3,7 +3,7 @@ version: '3.8'
 services:
   killbill:
     network_mode: host
-    image: killbill/killbill:0.22.20
+    image: killbill/killbill:0.23.0-9116fa4-SNAPSHOT
     environment:
       - KILLBILL_CATALOG_URI=SpyCarAdvanced.xml
       - KILLBILL_DAO_URL=jdbc:mysql://127.0.0.1:3306/killbill
@@ -16,8 +16,9 @@ services:
       - db
     volumes:
       - /var/tmp/bundles/plugins/java/avatax-plugin:/var/lib/killbill/bundles/plugins/java/avatax-plugin
+      - /var/tmp/tomcat_logs:/var/lib/tomcat/logs
   db:
     network_mode: host
-    image: killbill/mariadb:0.22
+    image: killbill/mariadb:0.23
     environment:
       - MYSQL_ROOT_PASSWORD=root

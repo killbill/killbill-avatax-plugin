@@ -1,7 +1,7 @@
 /*
  * Copyright 2014-2020 Groupon, Inc
- * Copyright 2020-2021 Equinix, Inc
- * Copyright 2014-2021 The Billing Project, LLC
+ * Copyright 2020-2022 Equinix, Inc
+ * Copyright 2014-2022 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -22,8 +22,6 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.GeneralSecurityException;
 import java.util.Properties;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
 
 import org.killbill.billing.plugin.avatax.client.model.AvaTaxErrors;
 import org.killbill.billing.plugin.avatax.client.model.CreateTransactionModel;
@@ -47,6 +45,7 @@ public class AvaTaxClient extends HttpClient {
 
     private static final Logger logger = LoggerFactory.getLogger(AvaTaxClient.class);
 
+    private final boolean configured;
     private final String companyCode;
     private final String sanitizedCompanyCode;
     private final boolean commitDocuments;
@@ -61,8 +60,8 @@ public class AvaTaxClient extends HttpClient {
               ClientUtils.getIntegerProperty(properties, "proxyPort"),
               ClientUtils.getBooleanProperty(properties, "strictSSL"),
               MoreObjects.firstNonNull(ClientUtils.getIntegerProperty(properties, "connectTimeout"), 10000),
-              MoreObjects.firstNonNull(ClientUtils.getIntegerProperty(properties, "readTimeout"), 60000),
-              MoreObjects.firstNonNull(ClientUtils.getIntegerProperty(properties, "requestTimeout"), 60000));    
+              MoreObjects.firstNonNull(ClientUtils.getIntegerProperty(properties, "requestTimeout"), 60000));
+        this.configured = properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "url") != null && properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "accountId") != null && properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "licenseKey") != null;
         this.companyCode = properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "companyCode", "DEFAULT");
         this.sanitizedCompanyCode = sanitizeCompanyCode(this.companyCode);
         this.commitDocuments = Boolean.parseBoolean(properties.getProperty(AvaTaxActivator.PROPERTY_PREFIX + "commitDocuments"));
@@ -82,7 +81,7 @@ public class AvaTaxClient extends HttpClient {
     }
 
     public boolean isConfigured() {
-        return url != null && username != null && password != null;
+        return configured;
     }
 
     @Override
@@ -95,15 +94,11 @@ public class AvaTaxClient extends HttpClient {
             return doCall(POST,
                           url + "/transactions/create",
                           serialize(createTransactionModel),
-                          DEFAULT_OPTIONS,
+                          ImmutableMap.of(),
                           ImmutableMap.<String, String>of("X-Avalara-Client", KILL_BILL_CLIENT_HEADER),
                           TransactionModel.class,
                           ResponseFormat.JSON);
         } catch (final InterruptedException e) {
-            throw new AvaTaxClientException(e);
-        } catch (final ExecutionException e) {
-            throw new AvaTaxClientException(e);
-        } catch (final TimeoutException e) {
             throw new AvaTaxClientException(e);
         } catch (final IOException e) {
             throw new AvaTaxClientException(e);
@@ -114,7 +109,7 @@ public class AvaTaxClient extends HttpClient {
                 final AvaTaxErrors errors = deserializeResponse(e.getResponse(), AvaTaxErrors.class, ResponseFormat.JSON);
                 throw new AvaTaxClientException(errors, e);
             } catch (final IOException e1) {
-                logger.warn("Invalid AvaTax request: status={}", e.getResponse() == null ? null : e.getResponse().getStatusCode());
+                logger.warn("Invalid AvaTax request: status={}", e.getResponse() == null ? null : e.getResponse().statusCode());
                 throw new AvaTaxClientException(e);
             }
         }
@@ -128,15 +123,11 @@ public class AvaTaxClient extends HttpClient {
             return doCall(POST,
                           url + "/companies/" + sanitizedCompanyCode + "/transactions/" + transactionCode + "/commit",
                           serialize(ImmutableMap.<String, Boolean>of("commit", true)),
-                          DEFAULT_OPTIONS,
+                          ImmutableMap.of(),
                           ImmutableMap.<String, String>of("X-Avalara-Client", KILL_BILL_CLIENT_HEADER),
                           TransactionModel.class,
                           ResponseFormat.JSON);
         } catch (final InterruptedException e) {
-            throw new AvaTaxClientException(e);
-        } catch (final ExecutionException e) {
-            throw new AvaTaxClientException(e);
-        } catch (final TimeoutException e) {
             throw new AvaTaxClientException(e);
         } catch (final IOException e) {
             throw new AvaTaxClientException(e);
@@ -147,7 +138,7 @@ public class AvaTaxClient extends HttpClient {
                 final AvaTaxErrors errors = deserializeResponse(e.getResponse(), AvaTaxErrors.class, ResponseFormat.JSON);
                 throw new AvaTaxClientException(errors, e);
             } catch (final IOException e1) {
-                logger.warn("Invalid AvaTax request: status={}", e.getResponse() == null ? null : e.getResponse().getStatusCode());
+                logger.warn("Invalid AvaTax request: status={}", e.getResponse() == null ? null : e.getResponse().statusCode());
                 throw new AvaTaxClientException(e);
             }
         }
@@ -161,15 +152,11 @@ public class AvaTaxClient extends HttpClient {
             return doCall(POST,
                           url + "/companies/" + sanitizedCompanyCode + "/transactions/" + transactionCode + "/void",
                           serialize(ImmutableMap.<String, String>of("code", "DocVoided")),
-                          DEFAULT_OPTIONS,
+                          ImmutableMap.of(),
                           ImmutableMap.<String, String>of("X-Avalara-Client", KILL_BILL_CLIENT_HEADER),
                           TransactionModel.class,
                           ResponseFormat.JSON);
         } catch (final InterruptedException e) {
-            throw new AvaTaxClientException(e);
-        } catch (final ExecutionException e) {
-            throw new AvaTaxClientException(e);
-        } catch (final TimeoutException e) {
             throw new AvaTaxClientException(e);
         } catch (final IOException e) {
             throw new AvaTaxClientException(e);
@@ -180,7 +167,7 @@ public class AvaTaxClient extends HttpClient {
                 final AvaTaxErrors errors = deserializeResponse(e.getResponse(), AvaTaxErrors.class, ResponseFormat.JSON);
                 throw new AvaTaxClientException(errors, e);
             } catch (final IOException e1) {
-                logger.warn("Invalid AvaTax request: status={}", e.getResponse() == null ? null : e.getResponse().getStatusCode());
+                logger.warn("Invalid AvaTax request: status={}", e.getResponse() == null ? null : e.getResponse().statusCode());
                 throw new AvaTaxClientException(e);
             }
         }
@@ -192,15 +179,11 @@ public class AvaTaxClient extends HttpClient {
             return doCall(GET,
                           url + "/companies/" + sanitizedCompanyCode + "/transactions/" + transactionCode,
                           null,
-                          DEFAULT_OPTIONS,
+                          ImmutableMap.of(),
                           ImmutableMap.<String, String>of("X-Avalara-Client", KILL_BILL_CLIENT_HEADER),
                           TransactionModel.class,
                           ResponseFormat.JSON);
         } catch (final InterruptedException e) {
-            throw new AvaTaxClientException(e);
-        } catch (final ExecutionException e) {
-            throw new AvaTaxClientException(e);
-        } catch (final TimeoutException e) {
             throw new AvaTaxClientException(e);
         } catch (final IOException e) {
             throw new AvaTaxClientException(e);
@@ -211,7 +194,7 @@ public class AvaTaxClient extends HttpClient {
                 final AvaTaxErrors errors = deserializeResponse(e.getResponse(), AvaTaxErrors.class, ResponseFormat.JSON);
                 throw new AvaTaxClientException(errors, e);
             } catch (final IOException e1) {
-                logger.warn("Invalid AvaTax request: status={}", e.getResponse() == null ? null : e.getResponse().getStatusCode());
+                logger.warn("Invalid AvaTax request: status={}", e.getResponse() == null ? null : e.getResponse().statusCode());
                 throw new AvaTaxClientException(e);
             }
         }
@@ -228,10 +211,6 @@ public class AvaTaxClient extends HttpClient {
                           PingResult.class,
                           ResponseFormat.JSON);
         } catch (final InterruptedException e) {
-            throw new AvaTaxClientException(e);
-        } catch (final ExecutionException e) {
-            throw new AvaTaxClientException(e);
-        } catch (final TimeoutException e) {
             throw new AvaTaxClientException(e);
         } catch (final IOException e) {
             throw new AvaTaxClientException(e);

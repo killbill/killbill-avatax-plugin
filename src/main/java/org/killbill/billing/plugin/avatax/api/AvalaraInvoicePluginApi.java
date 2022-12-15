@@ -18,11 +18,13 @@
 
 package org.killbill.billing.plugin.avatax.api;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
 import org.killbill.billing.invoice.api.Invoice;
 import org.killbill.billing.invoice.api.InvoiceItem;
+import org.killbill.billing.invoice.plugin.api.AdditionalItemsResult;
 import org.killbill.billing.invoice.plugin.api.InvoiceContext;
 import org.killbill.billing.invoice.plugin.api.OnFailureInvoiceResult;
 import org.killbill.billing.invoice.plugin.api.OnSuccessInvoiceResult;
@@ -36,10 +38,8 @@ import org.killbill.billing.plugin.avatax.client.TaxRatesClient;
 import org.killbill.billing.plugin.avatax.core.AvaTaxConfigurationHandler;
 import org.killbill.billing.plugin.avatax.core.TaxRatesConfigurationHandler;
 import org.killbill.billing.plugin.avatax.dao.AvaTaxDao;
-import org.killbill.billing.util.callcontext.CallContext;
 import org.killbill.clock.Clock;
 
-import com.google.common.collect.ImmutableList;
 
 public class AvalaraInvoicePluginApi extends PluginInvoicePluginApi {
 
@@ -73,12 +73,22 @@ public class AvalaraInvoicePluginApi extends PluginInvoicePluginApi {
     }
 
     @Override
-    public List<InvoiceItem> getAdditionalInvoiceItems(final Invoice invoice, final boolean dryRun, final Iterable<PluginProperty> properties, final CallContext callContext) {
+    public AdditionalItemsResult getAdditionalInvoiceItems(final Invoice invoice, final boolean dryRun, final Iterable<PluginProperty> properties, final InvoiceContext context) {
         if (PluginProperties.findPluginPropertyValue(AVALARA_SKIP, properties) != null) {
-            return ImmutableList.<InvoiceItem>of();
+            return new AdditionalItemsResult() {
+                @Override
+                public List<InvoiceItem> getAdditionalItems() {
+                    return Collections.emptyList();
+                }
+
+                @Override
+                public Iterable<PluginProperty> getAdjustedPluginProperties() {
+                    return null;
+                }
+            };
         }
 
-        final UUID kbTenantId = callContext.getTenantId();
+        final UUID kbTenantId = context.getTenantId();
         final AvaTaxClient avaTaxClient = avaTaxConfigurationHandler.getConfigurable(kbTenantId);
         final TaxRatesClient taxRatesClient = taxRatesConfigurationHandler.getConfigurable(kbTenantId);
 
@@ -87,12 +97,22 @@ public class AvalaraInvoicePluginApi extends PluginInvoicePluginApi {
         if (avaTaxClient.isConfigured()) {
             // If a per tenant taxRatesClient is configured and a global avaTaxClient, we would use the latter
             // Should this behavior be configurable?
-            return avaTaxInvoicePluginApi.getAdditionalInvoiceItems(invoice, dryRun, properties, callContext);
+            return avaTaxInvoicePluginApi.getAdditionalInvoiceItems(invoice, dryRun, properties, context);
         } else if (taxRatesClient.isConfigured()) {
-            return taxRatesInvoicePluginApi.getAdditionalInvoiceItems(invoice, dryRun, properties, callContext);
+            return taxRatesInvoicePluginApi.getAdditionalInvoiceItems(invoice, dryRun, properties, context);
         } else {
             // Not configured for that tenant?
-            return ImmutableList.<InvoiceItem>of();
+            return new AdditionalItemsResult() {
+                @Override
+                public List<InvoiceItem> getAdditionalItems() {
+                    return Collections.emptyList();
+                }
+
+                @Override
+                public Iterable<PluginProperty> getAdjustedPluginProperties() {
+                    return null;
+                }
+            };
         }
     }
 

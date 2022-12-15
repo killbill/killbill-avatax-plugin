@@ -22,15 +22,15 @@ import java.util.List;
 
 import org.killbill.billing.account.api.Account;
 import org.killbill.billing.invoice.api.Invoice;
-import org.killbill.billing.invoice.api.InvoiceApiException;
 import org.killbill.billing.invoice.api.InvoiceItem;
+import org.killbill.billing.invoice.plugin.api.AdditionalItemsResult;
+import org.killbill.billing.invoice.plugin.api.InvoiceContext;
 import org.killbill.billing.osgi.libs.killbill.OSGIConfigPropertiesService;
 import org.killbill.billing.osgi.libs.killbill.OSGIKillbillAPI;
 import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.api.invoice.PluginInvoicePluginApi;
 import org.killbill.billing.plugin.avatax.core.TaxRatesConfigurationHandler;
 import org.killbill.billing.plugin.avatax.dao.AvaTaxDao;
-import org.killbill.billing.util.callcontext.CallContext;
 import org.killbill.clock.Clock;
 
 public class TaxRatesInvoicePluginApi extends PluginInvoicePluginApi {
@@ -47,14 +47,25 @@ public class TaxRatesInvoicePluginApi extends PluginInvoicePluginApi {
     }
 
     @Override
-    public List<InvoiceItem> getAdditionalInvoiceItems(final Invoice invoice, final boolean dryRun, final Iterable<PluginProperty> properties, final CallContext context) {
+    public AdditionalItemsResult getAdditionalInvoiceItems(final Invoice invoice, final boolean dryRun, final Iterable<PluginProperty> properties, final InvoiceContext context) {
         final Account account = getAccount(invoice.getAccountId(), context);
 
-        try {
-            return calculator.compute(account, invoice, dryRun, properties, context);
-        } catch (final Exception e) {
-            // Prevent invoice generation
-            throw new RuntimeException(e);
-        }
+        return new AdditionalItemsResult() {
+            @Override
+            public List<InvoiceItem> getAdditionalItems() {
+                try {
+                    return calculator.compute(account, invoice, dryRun, properties, context);
+                } catch (final Exception e) {
+                    // Prevent invoice generation
+                    throw new RuntimeException(e);
+                }
+            }
+
+            @Override
+            public Iterable<PluginProperty> getAdjustedPluginProperties() {
+                return null;
+            }
+        };
+
     }
 }

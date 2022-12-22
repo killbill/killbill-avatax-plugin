@@ -33,6 +33,7 @@ import org.killbill.billing.catalog.api.Plan;
 import org.killbill.billing.catalog.api.StaticCatalog;
 import org.killbill.billing.invoice.api.Invoice;
 import org.killbill.billing.invoice.api.InvoiceItem;
+import org.killbill.billing.invoice.plugin.api.AdditionalItemsResult;
 import org.killbill.billing.invoice.plugin.api.InvoiceContext;
 import org.killbill.billing.invoice.plugin.api.OnSuccessInvoiceResult;
 import org.killbill.billing.osgi.libs.killbill.OSGIConfigPropertiesService;
@@ -45,7 +46,6 @@ import org.killbill.billing.plugin.avatax.client.AvaTaxClientException;
 import org.killbill.billing.plugin.avatax.core.AvaTaxConfigurationHandler;
 import org.killbill.billing.plugin.avatax.dao.AvaTaxDao;
 import org.killbill.billing.plugin.avatax.dao.gen.tables.records.AvataxResponsesRecord;
-import org.killbill.billing.util.callcontext.CallContext;
 import org.killbill.billing.util.callcontext.TenantContext;
 import org.killbill.billing.util.customfield.CustomField;
 import org.killbill.clock.Clock;
@@ -78,7 +78,7 @@ public class AvaTaxInvoicePluginApi extends PluginInvoicePluginApi {
     }
 
     @Override
-    public List<InvoiceItem> getAdditionalInvoiceItems(final Invoice invoice, final boolean dryRun, final Iterable<PluginProperty> properties, final CallContext context) {
+    public AdditionalItemsResult getAdditionalInvoiceItems(final Invoice invoice, final boolean dryRun, final Iterable<PluginProperty> properties, final InvoiceContext context) {
         final Collection<PluginProperty> pluginProperties = Lists.<PluginProperty>newArrayList(properties);
 
         final Account account = getAccount(invoice.getAccountId(), context);
@@ -86,12 +86,22 @@ public class AvaTaxInvoicePluginApi extends PluginInvoicePluginApi {
         checkForTaxExemption(invoice, pluginProperties, context);
         checkForTaxCodes(invoice, pluginProperties, context);
 
-        try {
-            return calculator.compute(account, invoice, dryRun, pluginProperties, context);
-        } catch (final Exception e) {
-            // Prevent invoice generation
-            throw new RuntimeException(e);
-        }
+        return new AdditionalItemsResult() {
+            @Override
+            public List<InvoiceItem> getAdditionalItems() {
+                try {
+                    return calculator.compute(account, invoice, dryRun, pluginProperties, context);
+                } catch (final Exception e) {
+                    // Prevent invoice generation
+                    throw new RuntimeException(e);
+                }
+            }
+
+            @Override
+            public Iterable<PluginProperty> getAdjustedPluginProperties() {
+                return null;
+            }
+        };
     }
 
     @Override

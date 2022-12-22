@@ -17,7 +17,7 @@ This integration delegates computation of sales taxes to Avalara, which will app
 |          0.6.y |            0.20.z | Legacy REST API |
 |          0.7.y |            0.22.z | Legacy REST API |
 |          0.8.y |            0.22.z | REST API        |
-|          0.9.y |            0.23.z | REST API        |
+|          0.9.y |            0.24.z | REST API        |
 
 We've upgraded numerous dependencies in 0.8.x (required for Java 11 support).
 

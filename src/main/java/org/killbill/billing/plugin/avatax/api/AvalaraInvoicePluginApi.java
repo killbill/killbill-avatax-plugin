@@ -19,11 +19,9 @@
 package org.killbill.billing.plugin.avatax.api;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.UUID;
 
 import org.killbill.billing.invoice.api.Invoice;
-import org.killbill.billing.invoice.api.InvoiceItem;
 import org.killbill.billing.invoice.plugin.api.AdditionalItemsResult;
 import org.killbill.billing.invoice.plugin.api.InvoiceContext;
 import org.killbill.billing.invoice.plugin.api.OnFailureInvoiceResult;
@@ -39,7 +37,6 @@ import org.killbill.billing.plugin.avatax.core.AvaTaxConfigurationHandler;
 import org.killbill.billing.plugin.avatax.core.TaxRatesConfigurationHandler;
 import org.killbill.billing.plugin.avatax.dao.AvaTaxDao;
 import org.killbill.clock.Clock;
-
 
 public class AvalaraInvoicePluginApi extends PluginInvoicePluginApi {
 
@@ -75,17 +72,7 @@ public class AvalaraInvoicePluginApi extends PluginInvoicePluginApi {
     @Override
     public AdditionalItemsResult getAdditionalInvoiceItems(final Invoice invoice, final boolean dryRun, final Iterable<PluginProperty> properties, final InvoiceContext context) {
         if (PluginProperties.findPluginPropertyValue(AVALARA_SKIP, properties) != null) {
-            return new AdditionalItemsResult() {
-                @Override
-                public List<InvoiceItem> getAdditionalItems() {
-                    return Collections.emptyList();
-                }
-
-                @Override
-                public Iterable<PluginProperty> getAdjustedPluginProperties() {
-                    return null;
-                }
-            };
+            return new AvataxAdditionalItemsResult(Collections.emptyList(), null);
         }
 
         final UUID kbTenantId = context.getTenantId();
@@ -102,17 +89,7 @@ public class AvalaraInvoicePluginApi extends PluginInvoicePluginApi {
             return taxRatesInvoicePluginApi.getAdditionalInvoiceItems(invoice, dryRun, properties, context);
         } else {
             // Not configured for that tenant?
-            return new AdditionalItemsResult() {
-                @Override
-                public List<InvoiceItem> getAdditionalItems() {
-                    return Collections.emptyList();
-                }
-
-                @Override
-                public Iterable<PluginProperty> getAdjustedPluginProperties() {
-                    return null;
-                }
-            };
+            return new AvataxAdditionalItemsResult(Collections.emptyList(), null);
         }
     }
 

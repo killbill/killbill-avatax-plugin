@@ -1,7 +1,7 @@
 /*
  * Copyright 2014-2020 Groupon, Inc
- * Copyright 2020-2021 Equinix, Inc
- * Copyright 2014-2021 The Billing Project, LLC
+ * Copyright 2020-2022 Equinix, Inc
+ * Copyright 2014-2022 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -50,22 +50,12 @@ public class TaxRatesInvoicePluginApi extends PluginInvoicePluginApi {
     public AdditionalItemsResult getAdditionalInvoiceItems(final Invoice invoice, final boolean dryRun, final Iterable<PluginProperty> properties, final InvoiceContext context) {
         final Account account = getAccount(invoice.getAccountId(), context);
 
-        return new AdditionalItemsResult() {
-            @Override
-            public List<InvoiceItem> getAdditionalItems() {
-                try {
-                    return calculator.compute(account, invoice, dryRun, properties, context);
-                } catch (final Exception e) {
-                    // Prevent invoice generation
-                    throw new RuntimeException(e);
-                }
-            }
-
-            @Override
-            public Iterable<PluginProperty> getAdjustedPluginProperties() {
-                return null;
-            }
-        };
-
+        try {
+            final List<InvoiceItem> additionalItems = calculator.compute(account, invoice, dryRun, properties, context);
+            return new AvataxAdditionalItemsResult(additionalItems, null);
+        } catch (final Exception e) {
+            // Prevent invoice generation
+            throw new RuntimeException(e);
+        }
     }
 }

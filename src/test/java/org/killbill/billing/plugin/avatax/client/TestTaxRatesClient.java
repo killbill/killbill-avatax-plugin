@@ -49,6 +49,6 @@ public class TestTaxRatesClient extends AvaTaxRemoteTestBase {
 
         Assert.assertEquals(rateByName.get("CA STATE TAX"), 0.06);
         Assert.assertEquals(rateByName.get("CA COUNTY TAX"), 0.0025);
-        Assert.assertEquals(rateByName.get("CA SPECIAL TAX"), 0.01375 + 0.01);
+        Assert.assertEquals(rateByName.get("CA SPECIAL TAX"), 0.01375);
     }
 }

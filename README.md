@@ -25,7 +25,8 @@ We've upgraded numerous dependencies in 0.8.x (required for Java 11 support).
 
 ## Requirements
 
-The plugin needs a database. The latest version of the schema can be found [here](https://github.com/killbill/killbill-avatax-plugin/blob/master/src/main/resources/ddl.sql).
+* An active Avatax account is required to use the plugin. 
+* The plugin needs a database. The database tables are automatically created and updated at plugin startup by default. Alternatively, if you would like to manage the database schema manually, you can disable automatic migrations and use the SQL scripts provided in the [src/main/resources/migration](src/main/resources/migration) directory to create or update the database tables as needed. See the [Database Setup](#database-setup) section below for details about disabling automatic migrations.
 
 ## Development
 
@@ -80,6 +81,19 @@ org.killbill.billing.plugin.avatax.licenseKey=ZZZ' \
 ```
 
 Refer to the [Avatax Plugin Manual](https://docs.killbill.io/latest/avatax-plugin#plugin_configuration) for further details.
+
+## Database Setup
+
+The Avatax plugin requires a database. By default, schema migrations run automatically at plugin startup.
+
+To skip automatic migrations (for example, if you prefer to manage the database schema manually), ensure that the following property is set before starting the plugin the first time:
+
+```properties
+org.killbill.billing.plugin.avatax.runMigrations=false
+```
+
+
+When automatic migrations are disabled, ensure that the required database tables are created manually using the SQL scripts provided in the [src/main/resources/migration](src/main/resources/migration) directory.
 
 ## AvaTax tax calculation details
 

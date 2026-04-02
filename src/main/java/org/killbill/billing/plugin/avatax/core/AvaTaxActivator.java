@@ -18,11 +18,13 @@
 
 package org.killbill.billing.plugin.avatax.core;
 
+import java.sql.SQLException;
 import java.util.Hashtable;
 
 import javax.servlet.Servlet;
 import javax.servlet.http.HttpServlet;
 
+import org.flywaydb.core.Flyway;
 import org.killbill.billing.invoice.plugin.api.InvoicePluginApi;
 import org.killbill.billing.osgi.api.Healthcheck;
 import org.killbill.billing.osgi.api.OSGIPluginProperties;
@@ -34,16 +36,24 @@ import org.killbill.billing.plugin.avatax.client.TaxRatesClient;
 import org.killbill.billing.plugin.avatax.dao.AvaTaxDao;
 import org.killbill.billing.plugin.core.resources.jooby.PluginApp;
 import org.killbill.billing.plugin.core.resources.jooby.PluginAppBuilder;
+import org.killbill.billing.plugin.dao.PluginDao;
+import org.killbill.billing.plugin.dao.PluginDao.DBEngine;
 import org.killbill.clock.Clock;
 import org.killbill.clock.DefaultClock;
 import org.osgi.framework.BundleContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AvaTaxActivator extends KillbillActivatorBase {
+
+    private static final Logger logger = LoggerFactory.getLogger(AvaTaxActivator.class);
 
     public static final String PLUGIN_NAME = "killbill-avatax";
 
     public static final String PROPERTY_PREFIX = "org.killbill.billing.plugin.avatax.";
     public static final String TAX_RATES_API_PROPERTY_PREFIX = "org.killbill.billing.plugin.avatax.taxratesapi.";
+
+    private static final String SHOULD_RUN_MIGRATIONS_PROPERTY = PROPERTY_PREFIX + "runMigrations";
 
     private AvaTaxConfigurationHandler avaTaxConfigurationHandler;
     private TaxRatesConfigurationHandler taxRatesConfigurationHandler;
@@ -51,6 +61,8 @@ public class AvaTaxActivator extends KillbillActivatorBase {
     @Override
     public void start(final BundleContext context) throws Exception {
         super.start(context);
+
+        runMigrationsIfEnabled();
 
         final AvaTaxDao dao = new AvaTaxDao(dataSource.getDataSource());
         final Clock clock = new DefaultClock();
@@ -118,5 +130,42 @@ public class AvaTaxActivator extends KillbillActivatorBase {
         final Hashtable<String, String> props = new Hashtable<String, String>();
         props.put(OSGIPluginProperties.PLUGIN_NAME_PROP, PLUGIN_NAME);
         registrar.registerService(context, Healthcheck.class, healthcheck, props);
+    }
+
+    private void runMigrationsIfEnabled() {
+        if (Boolean.parseBoolean(configProperties.getProperties().getProperty(SHOULD_RUN_MIGRATIONS_PROPERTY, "true"))) {
+            DBEngine dbEngine;
+            try {
+                dbEngine = PluginDao.getDBEngine(dataSource.getDataSource());
+            } catch (final SQLException e) {
+                logger.warn("Unable to determine database engine, defaulting to MySQL migrations", e);
+                dbEngine = DBEngine.MYSQL;
+            }
+
+            final String locations;
+            switch (dbEngine) {
+                case POSTGRESQL:
+                    locations = "classpath:migration/postgresql";
+                    break;
+                case GENERIC:
+                case H2:
+                case MYSQL:
+                default:
+                    // H2 and GENERIC use MySQL-compatible migration scripts
+                    locations = "classpath:migration/mysql";
+                    break;
+            }
+
+            final Flyway flyway = Flyway.configure(getClass().getClassLoader())
+                                        .dataSource(dataSource.getDataSource())
+                                        .locations(locations)
+                                        .table("avatax_schema_history")
+                                        .baselineOnMigrate(true)
+                                        .baselineVersion("0")
+                                        .load();
+            flyway.migrate();
+        } else {
+            logger.info("Skipping Flyway migrations as '{}' is set to false", SHOULD_RUN_MIGRATIONS_PROPERTY);
+        }
     }
 }

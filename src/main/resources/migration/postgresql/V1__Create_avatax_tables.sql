@@ -1,0 +1,84 @@
+/*
+ * Copyright 2020-2026 Equinix, Inc
+ * Copyright 2014-2026 The Billing Project, LLC
+ *
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
+ * (the "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at:
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
+/*
+ * Copyright 2014-2020 Groupon, Inc
+ * Copyright 2020-2020 Equinix, Inc
+ * Copyright 2014-2020 The Billing Project, LLC
+ *
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
+ * (the "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at:
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
+DO $$ BEGIN
+    CREATE DOMAIN datetime AS timestamp without time zone;
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE DOMAIN longtext AS text;
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
+
+create table avatax_responses (
+  record_id bigserial unique
+, kb_account_id char(36) not null
+, kb_invoice_id char(36) not null
+, kb_invoice_item_ids longtext default null
+, doc_code varchar(255) default null
+, doc_date datetime default null
+, timestamp datetime default null
+, total_amount numeric(15,9) default null
+, total_discount numeric(15,9) default null
+, total_exemption numeric(15,9) default null
+, total_taxable numeric(15,9) default null
+, total_tax numeric(15,9) default null
+, total_tax_calculated numeric(15,9) default null
+, tax_date datetime default null
+, tax_lines longtext default null
+, tax_summary longtext default null
+, tax_addresses longtext default null
+, result_code varchar(255) default null
+, messages longtext default null
+, additional_data longtext default null
+, created_date datetime not null
+, kb_tenant_id char(36) not null
+, primary key(record_id)
+);
+create index avatax_responses_kb_account_id on avatax_responses(kb_account_id);
+create index avatax_responses_kb_invoice_id on avatax_responses(kb_invoice_id);
+
+create table avatax_tax_codes (
+  record_id bigserial unique
+, product_name varchar(255) not null
+, tax_code varchar(255) not null
+, created_date datetime not null
+, kb_tenant_id char(36) not null
+, primary key(record_id)
+);
+create index avatax_tax_codes_product_name on avatax_tax_codes(product_name);
+create unique index avatax_tax_codes_product_name_tax_code_kb_tenant_id on avatax_tax_codes(product_name, tax_code, kb_tenant_id);
+

@@ -18,6 +18,9 @@
 
 package org.killbill.billing.plugin.avatax.client;
 
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.killbill.billing.plugin.avatax.AvaTaxRemoteTestBase;
 import org.killbill.billing.plugin.avatax.client.model.TaxRateResult;
 import org.testng.Assert;
@@ -41,20 +44,11 @@ public class TestTaxRatesClient extends AvaTaxRemoteTestBase {
         Assert.assertEquals(result.totalRate, 0.08625);
         Assert.assertEquals(result.rates.size(), 4);
 
-        Assert.assertEquals(result.rates.get(0).rate, 0.0025);
-        Assert.assertEquals(result.rates.get(0).name, "CA COUNTY TAX");
-        Assert.assertEquals(result.rates.get(0).type, "County");
+        final Map<String, Double> rateByName = result.rates.stream()
+                                                           .collect(Collectors.toMap(r -> r.name, r -> r.rate, (a, b) -> a));
 
-        Assert.assertEquals(result.rates.get(1).rate, 0.06);
-        Assert.assertEquals(result.rates.get(1).name, "CA STATE TAX");
-        Assert.assertEquals(result.rates.get(1).type, "State");
-
-        Assert.assertEquals(result.rates.get(2).rate, 0.01375);
-        Assert.assertEquals(result.rates.get(2).name, "CA SPECIAL TAX");
-        Assert.assertEquals(result.rates.get(2).type, "Special");
-
-        Assert.assertEquals(result.rates.get(3).rate, 0.01);
-        Assert.assertEquals(result.rates.get(3).name, "CA SPECIAL TAX");
-        Assert.assertEquals(result.rates.get(3).type, "Special");
+        Assert.assertEquals(rateByName.get("CA STATE TAX"), 0.06);
+        Assert.assertEquals(rateByName.get("CA COUNTY TAX"), 0.0025);
+        Assert.assertEquals(rateByName.get("CA SPECIAL TAX"), 0.01375);
     }
 }

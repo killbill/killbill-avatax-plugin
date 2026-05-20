@@ -18,7 +18,12 @@
 
 package org.killbill.billing.plugin.avatax.client;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+
 import org.killbill.billing.plugin.avatax.AvaTaxRemoteTestBase;
+import org.killbill.billing.plugin.avatax.client.model.RateModel;
 import org.killbill.billing.plugin.avatax.client.model.TaxRateResult;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -41,20 +46,26 @@ public class TestTaxRatesClient extends AvaTaxRemoteTestBase {
         Assert.assertEquals(result.totalRate, 0.08625);
         Assert.assertEquals(result.rates.size(), 4);
 
-        Assert.assertEquals(result.rates.get(0).rate, 0.0025);
-        Assert.assertEquals(result.rates.get(0).name, "CA COUNTY TAX");
-        Assert.assertEquals(result.rates.get(0).type, "County");
+        // Sort rates by type then by rate to avoid order-dependent assertions,
+        // as the AvaTax API does not guarantee a specific ordering.
+        final List<RateModel> sorted = new ArrayList<>(result.rates);
+        sorted.sort(Comparator.comparing((RateModel r) -> r.type)
+                              .thenComparingDouble(r -> r.rate));
 
-        Assert.assertEquals(result.rates.get(1).rate, 0.06);
-        Assert.assertEquals(result.rates.get(1).name, "CA STATE TAX");
-        Assert.assertEquals(result.rates.get(1).type, "State");
+        Assert.assertEquals(sorted.get(0).rate, 0.0025);
+        Assert.assertEquals(sorted.get(0).name, "CA COUNTY TAX");
+        Assert.assertEquals(sorted.get(0).type, "County");
 
-        Assert.assertEquals(result.rates.get(2).rate, 0.01375);
-        Assert.assertEquals(result.rates.get(2).name, "CA SPECIAL TAX");
-        Assert.assertEquals(result.rates.get(2).type, "Special");
+        Assert.assertEquals(sorted.get(1).rate, 0.01);
+        Assert.assertEquals(sorted.get(1).name, "CA SPECIAL TAX");
+        Assert.assertEquals(sorted.get(1).type, "Special");
 
-        Assert.assertEquals(result.rates.get(3).rate, 0.01);
-        Assert.assertEquals(result.rates.get(3).name, "CA SPECIAL TAX");
-        Assert.assertEquals(result.rates.get(3).type, "Special");
+        Assert.assertEquals(sorted.get(2).rate, 0.01375);
+        Assert.assertEquals(sorted.get(2).name, "CA SPECIAL TAX");
+        Assert.assertEquals(sorted.get(2).type, "Special");
+
+        Assert.assertEquals(sorted.get(3).rate, 0.06);
+        Assert.assertEquals(sorted.get(3).name, "CA STATE TAX");
+        Assert.assertEquals(sorted.get(3).type, "State");
     }
 }

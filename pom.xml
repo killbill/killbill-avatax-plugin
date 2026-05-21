@@ -190,6 +190,7 @@
         <dependency>
             <groupId>org.kill-bill.commons</groupId>
             <artifactId>killbill-utils</artifactId>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>org.kill-bill.testing</groupId>

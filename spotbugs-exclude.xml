@@ -22,4 +22,9 @@
     <Match>
         <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
     </Match>
+    <!-- justification: model classes are Jackson-deserialized DTOs; fields are written via reflection, not direct assignment -->
+    <Match>
+        <Class name="~org\.killbill\.billing\.plugin\.avatax\.client\.model\..*"/>
+        <Bug pattern="UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD,UWF_NULL_FIELD"/>
+    </Match>
 </FindBugsFilter>

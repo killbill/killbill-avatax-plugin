@@ -20,7 +20,7 @@ package org.killbill.billing.plugin.avatax.core;
 
 import java.util.Map;
 
-import javax.annotation.Nullable;
+import jakarta.annotation.Nullable;
 
 import org.killbill.billing.osgi.api.Healthcheck;
 import org.killbill.billing.plugin.avatax.client.AvaTaxClient;

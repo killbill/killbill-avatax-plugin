@@ -24,10 +24,8 @@ import java.util.Date;
 
 import org.joda.time.DateTime;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 // https://developer.avalara.com/api-reference/avatax/rest/v2/models/CreateTransactionModel/
-@SuppressFBWarnings("UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD")
 public class CreateTransactionModel {
 
     public Date date;

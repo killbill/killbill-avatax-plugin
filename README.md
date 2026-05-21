@@ -20,8 +20,10 @@ The easiest way to get started with the AvaTax plugin is to take a look at our [
 |          0.7.y |            0.22.z | Legacy REST API |
 |          0.8.y |            0.22.z | REST API        |
 |          0.9.y |            0.24.z | REST API        |
+|         0.10.y |            0.26.z | REST API        |
 
-We've upgraded numerous dependencies in 0.8.x (required for Java 11 support).
+We've upgraded numerous dependencies in 0.8.x (required for Java 11 support). In 0.10.x, the Java EE `javax` namespace
+is replaced by the `jakarta` namespace.
 
 ## Requirements
 

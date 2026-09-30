@@ -25,8 +25,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import javax.inject.Named;
-import javax.inject.Singleton;
+import jakarta.inject.Named;
+import jakarta.inject.Singleton;
 
 import org.jooby.MediaType;
 import org.jooby.Result;
@@ -43,7 +43,7 @@ import org.killbill.billing.plugin.avatax.dao.gen.tables.records.AvataxResponses
 import org.killbill.billing.tenant.api.Tenant;
 import org.killbill.billing.util.entity.Entity;
 
-import com.google.inject.Inject;
+import jakarta.inject.Inject;
 
 @Singleton
 // Handle /plugins/killbill-avatax/transactions

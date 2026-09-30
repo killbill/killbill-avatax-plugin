@@ -21,8 +21,8 @@ package org.killbill.billing.plugin.avatax.core;
 import java.sql.SQLException;
 import java.util.List;
 
-import javax.inject.Named;
-import javax.inject.Singleton;
+import jakarta.inject.Named;
+import jakarta.inject.Singleton;
 
 import org.jooby.MediaType;
 import org.jooby.Result;
@@ -43,7 +43,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
-import com.google.inject.Inject;
+import jakarta.inject.Inject;
 
 @Singleton
 // Handle /plugins/killbill-avatax/taxCodes

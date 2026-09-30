@@ -21,8 +21,8 @@ package org.killbill.billing.plugin.avatax.core;
 import java.sql.SQLException;
 import java.util.Hashtable;
 
-import javax.servlet.Servlet;
-import javax.servlet.http.HttpServlet;
+import jakarta.servlet.Servlet;
+import jakarta.servlet.http.HttpServlet;
 
 import org.flywaydb.core.Flyway;
 import org.killbill.billing.invoice.plugin.api.InvoicePluginApi;

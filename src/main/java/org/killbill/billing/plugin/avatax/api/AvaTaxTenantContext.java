@@ -20,7 +20,7 @@ package org.killbill.billing.plugin.avatax.api;
 
 import java.util.UUID;
 
-import javax.annotation.Nullable;
+import jakarta.annotation.Nullable;
 
 import org.killbill.billing.plugin.api.PluginTenantContext;
 
